@@ -50,6 +50,6 @@ class RecursoBibliografico extends Model implements HasMedia
     }
         public function reservas()
     {
-   //     return $this->hasMany(Reserva::class, 'recurso_bibliografico_id');
+        return $this->hasMany(Reserva::class, 'recurso_bibliografico_id');
     }
 }

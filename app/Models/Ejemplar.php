@@ -30,15 +30,15 @@ class Ejemplar extends Model
     }
         public function ubicacion()
     {
-    //    return $this->belongsTo(Ubicacion::class, 'ubicacion_id');
+       return $this->belongsTo(Ubicacion::class, 'ubicacion_id');
     }
         public function prestamos()
     {
-     //   return $this->hasMany(Prestamo::class, 'ejemplar_id');
+        return $this->hasMany(Prestamo::class, 'ejemplar_id');
     }
 
     public function movimientos()
     {
-    //    return $this->hasMany(MovimientoEjemplar::class, 'ejemplar_id');
+       return $this->hasMany(MovimientoEjemplar::class, 'ejemplar_id');
     }
 }
