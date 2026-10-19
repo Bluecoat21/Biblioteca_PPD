@@ -16,6 +16,12 @@ use App\Http\Controllers\SuspensionController;
 use App\Http\Controllers\TipoUsuarioController;
 use App\Http\Controllers\UsuarioController;
 
+// Módulo 4 - Inventario y Reportes
+use App\Http\Controllers\UbicacionController;
+use App\Http\Controllers\MovimientoController;
+use App\Http\Controllers\ConfiguracionController;
+use App\Http\Controllers\ReporteController;
+
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -83,6 +89,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::put('/reservas/{id}/cancelar', [ReservaController::class, 'cancelar'])
         ->name('reservas.cancelar');
+
+    /*
+    |--------------------------------------------------------------------------
+    | MÓDULO 4 - INVENTARIO Y REPORTES
+    |--------------------------------------------------------------------------
+    */
+
+    // CU-16: Gestionar Ubicaciones
+    Route::resource('ubicaciones', UbicacionController::class);
+
+    // CU-17 y CU-18: Registrar Movimiento (Incluye Pérdida o Daño)
+    Route::post('/movimientos', [MovimientoController::class, 'registrarMovimiento'])
+        ->name('movimientos.registrar');
+
+    Route::get('/ejemplares/{ejemplarId}/historial', [MovimientoController::class, 'historialEjemplar'])
+        ->name('ejemplares.historial');
+
+    // CU-19: Configurar Parámetros del Sistema
+    Route::get('/configuraciones', [ConfiguracionController::class, 'index'])
+        ->name('configuraciones.index');
+
+    Route::post('/configuraciones', [ConfiguracionController::class, 'updateOrCreate'])
+        ->name('configuraciones.updateOrCreate');
+
+    // CU-20: Generar Reportes
+    Route::get('/reportes/movimientos', [ReporteController::class, 'reporteMovimientos'])
+        ->name('reportes.movimientos');
 
     /*
     |--------------------------------------------------------------------------
