@@ -1,10 +1,17 @@
-$primary-color: #4f46e5; // Índigo institucional
-$primary-hover: #4338ca;
-$bg-color: #f8fafc;
-$card-bg: #ffffff;
-$text-main: #0f172a;
+// Colores
+$primary: #1e3a8a;       // Azul institucional
+$primary-hover: #1d4ed8;
+$secondary: #0f172a;     // Oscuro para textos y navegación
+$accent: #f59e0b;        // Dorado/Ámbar de acento
+$background: #f8fafc;    // Gris claro de fondo
+$surface: #ffffff;       // Blanco para tarjetas y paneles
+$text-main: #334155;
 $text-muted: #64748b;
-$border-color: #e2e8f0;
-$danger-color: #ef4444;
-$radius-lg: 1rem;
+$border: #e2e8f0;
+
+// Tipografía y Espaciado
+$font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
 $radius-md: 0.5rem;
+$radius-lg: 0.75rem;
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);

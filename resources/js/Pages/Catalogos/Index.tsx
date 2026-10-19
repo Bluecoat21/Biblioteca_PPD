@@ -1,6 +1,6 @@
 import React from 'react';
 import { Head, Link } from '@inertiajs/react';
-import '../../css/scss/main.scss';
+
 
 declare const route: any;
 
