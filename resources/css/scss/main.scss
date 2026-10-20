@@ -3,14 +3,12 @@
 @use 'abstracts/mixins';
 
 // 2. Base (Reset y Animaciones)
-@use 'base/reset';
-@use 'base/animations';
+
 
 // 3. Components (Elementos reutilizables)
-@use 'components/buttons';
-@use 'components/cards';
-@use 'components/forms';
+
 
 // 4. Pages (Estilos específicos del módulo)
 @use 'pages/catalogos';
 @use 'pages/ubicaciones';
+@use 'pages/dashboard';

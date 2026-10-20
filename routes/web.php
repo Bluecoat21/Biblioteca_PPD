@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use Inertia\Inertia;
 
 use App\Http\Controllers\AutorController;
 use App\Http\Controllers\CategoriaController;
@@ -26,8 +28,13 @@ Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
-
+Route::get('/dashboard', function () {
+        return Inertia::render('Dashboard', [
+            'auth' => [
+                'user' => Auth::user(),
+            ],
+        ]);
+    })->name('dashboard');
     /*
     |--------------------------------------------------------------------------
     | MÓDULO 1 - RECURSOS BIBLIOGRÁFICOS
