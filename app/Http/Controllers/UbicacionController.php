@@ -4,13 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Ubicacion;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class UbicacionController extends Controller
 {
-    public function index()
-    {
-        return response()->json(Ubicacion::withCount('ejemplares')->get());
-    }
+
+public function index()
+{
+    $ubicaciones = Ubicacion::withCount('ejemplares')->get();
+    
+    // Cambiar response()->json por Inertia apuntando al módulo de Configuración
+    return Inertia::render('Configuracion/Ubicaciones', [
+        'ubicaciones' => $ubicaciones
+    ]);
+}
 
     public function store(Request $request)
     {

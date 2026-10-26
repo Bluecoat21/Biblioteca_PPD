@@ -12,13 +12,12 @@ class AutorController extends Controller
     public function index()
     {
         $autores = Autor::withCount('recursos')->paginate(10);
-        return Inertia::render('Autores/Index', ['autores' => $autores]);
+        return Inertia::render('Catalogos/Autores', ['autores' => $autores]);
     }
 
     public function store(StoreAutorRequest $request)
     {
         Autor::create($request->validated());
-
         return redirect()->back()->with('success', 'Autor registrado exitosamente.');
     }
 
@@ -33,7 +32,6 @@ class AutorController extends Controller
         ]);
 
         $autor->update($validated);
-
         return redirect()->back()->with('success', 'Autor actualizado exitosamente.');
     }
 

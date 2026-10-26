@@ -29,14 +29,12 @@ class MultaController extends Controller
                 'observaciones' => $m->observaciones,
             ]);
 
-        return Inertia::render('multas/index', [
-            'multas' => $multas,
-        ]);
+return Inertia::render('Circulacion/Multas', ['multas' => $multas]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('multas/create', [
+        return Inertia::render('Circulacion/Multas', [
             'usuarios' => User::orderBy('name')->get(['id', 'name', 'documento_identidad']),
         ]);
     }
@@ -48,8 +46,7 @@ class MultaController extends Controller
         $data['fecha_generacion'] = now();
 
         Multa::create($data);
-
-        return redirect('/multas');
+        return redirect()->route('multas.index');
     }
 
     public function pagar(Multa $multa): RedirectResponse
@@ -65,7 +62,7 @@ class MultaController extends Controller
             'fecha_pago' => now(),
         ]);
 
-        return redirect('/multas');
+        return redirect()->route('multas.index');
     }
 
     public function condonar(Multa $multa): RedirectResponse
@@ -77,7 +74,6 @@ class MultaController extends Controller
         }
 
         $multa->update(['estado' => 'condonada']);
-
-        return redirect('/multas');
+        return redirect()->route('multas.index');
     }
 }

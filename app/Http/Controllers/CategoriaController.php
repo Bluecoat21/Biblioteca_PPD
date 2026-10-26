@@ -23,7 +23,6 @@ class CategoriaController extends Controller
     public function store(StoreCategoriaRequest $request)
     {
         Categoria::create($request->validated());
-
         return redirect()->back()->with('success', 'Categoría creada exitosamente.');
     }
 
@@ -36,7 +35,6 @@ class CategoriaController extends Controller
         ]);
 
         $categoria->update($validated);
-
         return redirect()->back()->with('success', 'Categoría actualizada exitosamente.');
     }
 

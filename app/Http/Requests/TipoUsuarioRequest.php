@@ -14,7 +14,7 @@ class TipoUsuarioRequest extends FormRequest
 
     public function rules(): array
     {
-        $id = $this->route('tipoUsuario')?->id;
+        $id = $this->route('tipo_usuario')?->id ?? $this->route('tipoUsuario')?->id;
 
         return [
             'nombre' => ['required', 'string', 'max:255', Rule::unique('tipos_usuario', 'nombre')->ignore($id)],

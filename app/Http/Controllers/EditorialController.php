@@ -18,7 +18,6 @@ class EditorialController extends Controller
     public function store(StoreEditorialRequest $request)
     {
         Editorial::create($request->validated());
-
         return redirect()->back()->with('success', 'Editorial registrada exitosamente.');
     }
 
@@ -31,7 +30,6 @@ class EditorialController extends Controller
         ]);
 
         $editorial->update($validated);
-
         return redirect()->back()->with('success', 'Editorial actualizada exitosamente.');
     }
 

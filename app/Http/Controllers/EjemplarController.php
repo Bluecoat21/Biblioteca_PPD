@@ -12,7 +12,6 @@ class EjemplarController extends Controller
     public function store(StoreEjemplarRequest $request, RecursoBibliografico $recurso)
     {
         $recurso->ejemplares()->create($request->validated());
-
         return redirect()->back()->with('success', 'Ejemplar registrado correctamente en el inventario.');
     }
 
@@ -30,7 +29,6 @@ class EjemplarController extends Controller
         ]);
 
         $ejemplar->update($validated);
-
         return redirect()->back()->with('success', 'Ejemplar actualizado correctamente.');
     }
 

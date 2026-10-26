@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\DB;
 
 class PrestamoController extends Controller
 {
-    // Listar préstamos activos e historiales (para la vista de bibliotecario)
     public function index(Request $request)
     {
         $query = Prestamo::with(['ejemplar.recursoBibliografico', 'usuario', 'bibliotecario']);
@@ -32,7 +31,7 @@ class PrestamoController extends Controller
         $ejemplaresDisponibles = Ejemplar::with('recursoBibliografico')->where('estado', 'disponible')->get();
         $usuarios = User::all();
 
-        return Inertia::render('Circulation/Prestamos/Index', [
+        return Inertia::render('Circulacion/Index', [
             'prestamos' => $prestamos,
             'ejemplaresDisponibles' => $ejemplaresDisponibles,
             'usuarios' => $usuarios,
@@ -40,7 +39,6 @@ class PrestamoController extends Controller
         ]);
     }
 
-    // Registrar un nuevo préstamo físico
     public function store(Request $request)
     {
         $request->validate([
@@ -51,12 +49,10 @@ class PrestamoController extends Controller
         $ejemplar = Ejemplar::with('recursoBibliografico')->findOrFail($request->ejemplar_id);
         $usuario = User::with('tipoUsuario')->findOrFail($request->user_id);
 
-        // 1. Validar disponibilidad del ejemplar
         if ($ejemplar->estado !== 'disponible') {
             return back()->withErrors(['ejemplar_id' => 'El ejemplar no se encuentra disponible (Estado actual: ' . $ejemplar->estado . ').']);
         }
 
-        // 2. Validar límite de préstamos activos del usuario
         $prestamosActivos = Prestamo::where('user_id', $usuario->id)
             ->whereIn('estado', ['activo', 'atrasado'])
             ->count();
@@ -66,7 +62,6 @@ class PrestamoController extends Controller
             return back()->withErrors(['user_id' => 'El usuario ha alcanzado el límite máximo de préstamos permitidos (' . $maxPermitidos . ').']);
         }
 
-        // 3. Obtener política de préstamo según tipo de usuario y recurso
         $tipoRecurso = $ejemplar->recursoBibliografico ? $ejemplar->recursoBibliografico->tipo : 'libro';
         $politica = null;
         
@@ -89,14 +84,12 @@ class PrestamoController extends Controller
                 'renovaciones' => 0,
             ]);
 
-            // Actualizar estado del ejemplar
             $ejemplar->update(['estado' => 'prestado']);
         });
 
         return redirect()->back()->with('success', 'Préstamo registrado exitosamente.');
     }
 
-    // Registrar devolución de un ejemplar
     public function devolver($id)
     {
         $prestamo = Prestamo::with('ejemplar')->findOrFail($id);
@@ -109,9 +102,6 @@ class PrestamoController extends Controller
             $hoy = Carbon::now();
             $esperada = Carbon::parse($prestamo->fecha_devolucion_esperada);
             
-            // Determinar si se devolvió a tiempo o con atraso
-            $nuevoEstado = $hoy->gt($esperada) ? 'atrasado' : 'devuelto';
-
             $prestamo->update([
                 'fecha_devolucion_real' => $hoy,
                 'estado' => 'devuelto',
@@ -125,7 +115,6 @@ class PrestamoController extends Controller
         return redirect()->back()->with('success', 'Devolución registrada correctamente.');
     }
 
-    // Renovar préstamo
     public function renovar($id)
     {
         $prestamo = Prestamo::with(['ejemplar.recursoBibliografico', 'usuario.tipoUsuario'])->findOrFail($id);
@@ -134,7 +123,6 @@ class PrestamoController extends Controller
             return back()->withErrors(['error' => 'Solo se pueden renovar préstamos activos.']);
         }
 
-        // Verificar si existen reservas pendientes para el recurso
         $recursoId = $prestamo->ejemplar->recurso_bibliografico_id ?? null;
         if ($recursoId) {
             $tieneReservas = Reserva::where('recurso_bibliografico_id', $recursoId)
@@ -146,7 +134,6 @@ class PrestamoController extends Controller
             }
         }
 
-        // Verificar políticas de renovación
         $tipoUsuarioId = $prestamo->usuario->tipo_usuario_id;
         $tipoRecurso = $prestamo->ejemplar->recursoBibliografico->tipo ?? 'libro';
 

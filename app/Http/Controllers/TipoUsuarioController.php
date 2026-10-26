@@ -12,26 +12,25 @@ class TipoUsuarioController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('tipos-usuario/index', [
+        return Inertia::render('Usuarios/TiposUsuario', [
             'tipos' => TipoUsuario::withCount('users')->orderBy('nombre')->get(),
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('tipos-usuario/create');
+        return Inertia::render('TiposUsuario/Create');
     }
 
     public function store(TipoUsuarioRequest $request): RedirectResponse
     {
         TipoUsuario::create($request->validated());
-
-        return redirect('/tipos-usuario');
+        return redirect()->route('tipos-usuario.index');
     }
 
     public function edit(TipoUsuario $tipoUsuario): Response
     {
-        return Inertia::render('tipos-usuario/edit', [
+        return Inertia::render('TiposUsuario/Edit', [
             'tipo' => $tipoUsuario,
         ]);
     }
@@ -39,8 +38,7 @@ class TipoUsuarioController extends Controller
     public function update(TipoUsuarioRequest $request, TipoUsuario $tipoUsuario): RedirectResponse
     {
         $tipoUsuario->update($request->validated());
-
-        return redirect('/tipos-usuario');
+        return redirect()->route('tipos-usuario.index');
     }
 
     public function destroy(TipoUsuario $tipoUsuario): RedirectResponse
@@ -52,7 +50,6 @@ class TipoUsuarioController extends Controller
         }
 
         $tipoUsuario->delete();
-
-        return redirect('/tipos-usuario');
+        return redirect()->route('tipos-usuario.index');
     }
 }

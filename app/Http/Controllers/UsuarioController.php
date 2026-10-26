@@ -28,14 +28,14 @@ class UsuarioController extends Controller
                 'rol' => $u->roles->first()?->name,
             ]);
 
-        return Inertia::render('usuarios/index', [
+        return Inertia::render('Usuarios/Index', [
             'usuarios' => $usuarios,
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('usuarios/create', [
+        return Inertia::render('Usuarios/Create', [
             'tipos' => TipoUsuario::orderBy('nombre')->get(['id', 'nombre']),
             'roles' => Role::orderBy('name')->pluck('name'),
         ]);
@@ -52,12 +52,12 @@ class UsuarioController extends Controller
         $usuario->save();
         $usuario->syncRoles([$rol]);
 
-        return redirect('/usuarios');
+        return redirect()->route('usuarios.index');
     }
 
     public function edit(User $usuario): Response
     {
-        return Inertia::render('usuarios/edit', [
+        return Inertia::render('Usuarios/Edit', [
             'usuario' => [
                 'id' => $usuario->id,
                 'name' => $usuario->name,
@@ -86,7 +86,7 @@ class UsuarioController extends Controller
         $usuario->update($data);
         $usuario->syncRoles([$rol]);
 
-        return redirect('/usuarios');
+        return redirect()->route('usuarios.index');
     }
 
     public function destroy(User $usuario): RedirectResponse
@@ -99,6 +99,6 @@ class UsuarioController extends Controller
 
         $usuario->delete();
 
-        return redirect('/usuarios');
+        return redirect()->route('usuarios.index');
     }
 }

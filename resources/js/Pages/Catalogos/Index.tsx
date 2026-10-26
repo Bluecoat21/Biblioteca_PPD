@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 
 interface Recurso {
     id: number;
     titulo: string;
     isbn: string | null;
-    tipo: 'LIBRO' | 'TESIS' | 'REVISTA' | 'DIGITAL';
+    tipo: string;
     anio_publicacion: number;
 }
 
@@ -28,16 +28,53 @@ interface Categoria {
     descripcion: string | null;
 }
 
-interface Props {
-    recursos: Recurso[];
-    autores: Autor[];
-    editoriales: Editorial[];
-    categorias: Categoria[];
+interface PaginatedData<T> {
+    data: T[];
+    total: number;
+    current_page: number;
+    last_page: number;
 }
 
-export default function CatalogosIndex({ recursos, autores, editoriales, categorias }: Props) {
+interface Props {
+    recursos: PaginatedData<Recurso> | Recurso[];
+    autores?: Autor[];
+    editoriales?: Editorial[];
+    categorias?: Categoria[];
+}
+
+export default function CatalogosIndex({ 
+    recursos, 
+    autores = [], 
+    editoriales = [], 
+    categorias = [] 
+}: Props) {
     const [tabActiva, setTabActiva] = useState<'recursos' | 'autores_editoriales' | 'categorias'>('recursos');
     const [busqueda, setBusqueda] = useState('');
+
+    // Helper seguro para evitar errores si Ziggy no está inyectado
+    const getRoute = (routeName: string, fallbackUrl: string) => {
+        try {
+            if (typeof window !== 'undefined' && (window as any).route) {
+                return (window as any).route(routeName);
+            }
+        } catch (e) {
+            // Ignorar y usar fallback
+        }
+        return fallbackUrl;
+    };
+
+    const getRouteWithParam = (routeName: string, param: any, fallbackUrl: string) => {
+        try {
+            if (typeof window !== 'undefined' && (window as any).route) {
+                return (window as any).route(routeName, param);
+            }
+        } catch (e) {
+            // Ignorar y usar fallback
+        }
+        return fallbackUrl;
+    };
+
+    const listaRecursos = Array.isArray(recursos) ? recursos : (recursos?.data || []);
 
     return (
         <div className="catalogos-module min-h-screen bg-slate-50 p-6">
@@ -58,9 +95,12 @@ export default function CatalogosIndex({ recursos, autores, editoriales, categor
                             onChange={(e) => setBusqueda(e.target.value)}
                             className="search-input bg-white border border-slate-300 text-slate-700 text-sm rounded-lg px-3 py-2 shadow-sm focus:outline-none w-full md:w-64"
                         />
-                        <button className="btn-primary bg-[#0f2b48] hover:bg-[#1a426e] text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center gap-2 whitespace-nowrap">
+                        <Link 
+                            href={getRoute('recursos.create', '/recursos/create')} 
+                            className="btn-primary bg-[#0f2b48] hover:bg-[#1a426e] text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center gap-2 whitespace-nowrap"
+                        >
                             <i className="fa-solid fa-plus"></i> Nuevo Registro
-                        </button>
+                        </Link>
                     </div>
                 </div>
 
@@ -72,7 +112,7 @@ export default function CatalogosIndex({ recursos, autores, editoriales, categor
                             tabActiva === 'recursos' ? 'border-primary text-primary border-b-2 border-[#0f2b48]' : 'border-transparent text-slate-500 hover:text-slate-700'
                         }`}
                     >
-                        <i className="fa-solid fa-book"></i> Recursos Bibliográficos ({recursos.length})
+                        <i className="fa-solid fa-book"></i> Recursos Bibliográficos ({listaRecursos.length})
                     </button>
                     <button
                         onClick={() => setTabActiva('autores_editoriales')}
@@ -107,7 +147,7 @@ export default function CatalogosIndex({ recursos, autores, editoriales, categor
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
-                                {recursos.map((rec) => (
+                                {listaRecursos.map((rec) => (
                                     <tr key={rec.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="py-3 px-4 font-mono font-bold">#{rec.id}</td>
                                         <td className="py-3 px-4 font-semibold text-slate-900">{rec.titulo}</td>
@@ -115,10 +155,22 @@ export default function CatalogosIndex({ recursos, autores, editoriales, categor
                                         <td className="py-3 px-4"><span className="badge-tipo">{rec.tipo}</span></td>
                                         <td className="py-3 px-4">{rec.anio_publicacion}</td>
                                         <td className="py-3 px-4 text-right">
-                                            <button className="text-slate-400 hover:text-[#0f2b48] p-1.5"><i className="fa-solid fa-pen-to-square"></i></button>
+                                            <Link 
+                                                href={getRouteWithParam('recursos.show', rec.id, `/recursos/${rec.id}`)} 
+                                                className="text-slate-400 hover:text-[#0f2b48] p-1.5 inline-block"
+                                            >
+                                                <i className="fa-solid fa-eye"></i>
+                                            </Link>
                                         </td>
                                     </tr>
                                 ))}
+                                {listaRecursos.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="py-6 text-center text-slate-400">
+                                            No hay recursos registrados.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
