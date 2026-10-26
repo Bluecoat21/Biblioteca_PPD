@@ -1,0 +1,46 @@
+// ==========================================
+// THEMES: Tema Oscuro (Dark Theme)
+// ==========================================
+@use '../abstracts/variables' as *;
+
+// Aplicamos el modo oscuro cuando el body o un contenedor tenga la clase .dark-mode
+body.dark-mode {
+  background-color: #0b0f19;
+  color: #f1f5f9;
+
+  // Adaptación de los módulos principales
+  .catalogos-module, 
+  .circulacion-module, 
+  .configuracion-module, 
+  .usuarios-module {
+    background-color: #0b0f19;
+  }
+
+  // Tarjetas y tablas oscuras
+  .data-table-container, 
+  .card-institutional {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #f1f5f9;
+
+    table {
+      thead {
+        background-color: #09192b; // Un tono de azul más profundo para modo oscuro
+      }
+
+      tbody {
+        tr {
+          border-bottom-color: #334155;
+
+          &:hover {
+            background-color: #273548;
+          }
+
+          td {
+            color: #cbd5e1;
+          }
+        }
+      }
+    }
+  }
+}

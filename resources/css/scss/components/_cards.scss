@@ -1,0 +1,24 @@
+// ==========================================
+// COMPONENTS: Tarjetas Institucionales
+// ==========================================
+@use '../abstracts/variables' as *;
+
+.card-institutional {
+  background-color: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $border-radius-lg;
+  padding: 1.5rem;
+  box-shadow: $shadow-sm;
+  transition: $transition-fast;
+
+  &:hover {
+    box-shadow: $shadow-md;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: $color-primary;
+    margin-bottom: 0.75rem;
+  }
+}

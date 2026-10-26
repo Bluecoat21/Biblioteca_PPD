@@ -1,0 +1,25 @@
+// ==========================================
+// COMPONENTS: Botones Institucionales
+// ==========================================
+@use '../abstracts/variables' as *;
+
+.btn-primary {
+  background-color: $color-primary;
+  color: $color-text-light;
+  padding: 0.5rem 1.25rem;
+  border-radius: $border-radius-md;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: $shadow-sm;
+  transition: $transition-fast;
+
+  &:hover {
+    background-color: $color-primary-hover;
+    transform: translateY(-1px);
+  }
+}

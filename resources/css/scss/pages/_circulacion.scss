@@ -1,0 +1,14 @@
+// ==========================================
+// PAGES: Módulo de Circulación
+// ==========================================
+@use '../abstracts/variables' as *;
+
+.circulacion-module {
+  background-color: $color-bg-main;
+  
+  .table-circulacion {
+    background-color: $color-surface;
+    border-radius: $border-radius-lg;
+    border: 1px solid $color-border;
+  }
+}

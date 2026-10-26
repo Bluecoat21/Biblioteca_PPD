@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('prestamos', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('ejemplar_id')->constrained('ejemplars')->cascadeOnDelete();
+            $table->foreignId('ejemplar_id')->constrained('ejemplares')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete(); // Usuario que solicita el préstamo
             $table->foreignId('bibliotecario_id')->constrained('users')->cascadeOnDelete(); // Usuario bibliotecario que registra
             $table->datetime('fecha_prestamo');

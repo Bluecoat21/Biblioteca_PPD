@@ -1,0 +1,15 @@
+// ==========================================
+// PAGES: Módulo de Configuración
+// ==========================================
+@use '../abstracts/variables' as *;
+
+.configuracion-module {
+  background-color: $color-bg-main;
+
+  .config-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: $color-primary;
+    margin-bottom: 1rem;
+  }
+}

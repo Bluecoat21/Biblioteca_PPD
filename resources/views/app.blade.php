@@ -6,8 +6,10 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Scripts -->
-        @routes
+        <!-- FontAwesome para los iconos institucionales del Sidebar y Módulos -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+        <!-- Scripts y Estilos con Vite (Carga app.jsx que a su vez importa main.scss y las páginas TSX) -->
         @viteReactRefresh
         @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.tsx"])
         @inertiaHead

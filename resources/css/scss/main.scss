@@ -1,14 +1,29 @@
-// 1. Abstracts (Variables y Mixins)
+// ==========================================
+// MAIN.SCSS - Sistema de Biblioteca Institucional
+// ==========================================
+
+// 1. Abstracts (Variables, funciones, mixins)
 @use 'abstracts/variables';
 @use 'abstracts/mixins';
 
-// 2. Base (Reset y Animaciones)
+// 2. Base (Estilos globales, reset, tipografía)
+@use 'base/typography';
 
+// 3. Layout (Estructuras macro: header, footer, grid principal, sidebar)
+@use 'layout/header';
+@use 'layout/sidebar';
+@use 'layout/grid';
 
-// 3. Components (Elementos reutilizables)
+// 4. Components (Componentes reutilizables: tarjetas, botones, badges)
+@use 'components/buttons';
+@use 'components/cards';
+@use 'components/badges';
 
-
-// 4. Pages (Estilos específicos del módulo)
+// 5. Pages (Estilos específicos de vistas concretas)
 @use 'pages/catalogos';
-@use 'pages/ubicaciones';
-@use 'pages/dashboard';
+@use 'pages/circulacion';
+@use 'pages/configuracion';
+@use 'pages/usuarios';
+
+// 6. Themes (Modos claro/oscuro o variantes institucionales)
+@use 'themes/dark-theme';

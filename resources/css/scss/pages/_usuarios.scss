@@ -1,0 +1,15 @@
+// ==========================================
+// PAGES: Módulo de Usuarios y Sanciones
+// ==========================================
+@use '../abstracts/variables' as *;
+
+.usuarios-module {
+  background-color: $color-bg-main;
+
+  .card-tipo-usuario {
+    background-color: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: $border-radius-lg;
+    padding: 1.25rem;
+  }
+}

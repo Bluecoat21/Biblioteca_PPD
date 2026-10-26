@@ -1,0 +1,85 @@
+// ==========================================
+// PAGES: Módulo de Catálogos / Módulos
+// ==========================================
+@use '../abstracts/variables' as *;
+
+.catalogos-module {
+  background-color: $color-bg-main;
+  min-height: 100vh;
+
+  // Sistema de Pestañas (Tabs)
+  .tabs-navigation {
+    display: flex;
+    background-color: $color-surface;
+    border-bottom: 1px solid $color-border;
+    border-radius: $border-radius-lg $border-radius-lg 0 0;
+
+    .tab-button {
+      padding: 1rem 1.5rem;
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: $color-text-muted;
+      border: none;
+      border-bottom: 3px solid transparent;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: $transition-fast;
+
+      &:hover {
+        color: $color-primary;
+      }
+
+      &.active {
+        color: $color-primary;
+        border-bottom-color: $color-primary;
+      }
+    }
+  }
+
+  // Contenedor de Tabla Institucional
+  .data-table-container {
+    background-color: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: 0 0 $border-radius-lg $border-radius-lg;
+    box-shadow: $shadow-sm;
+    overflow: hidden;
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+
+      thead {
+        background-color: $color-primary;
+        color: $color-text-light;
+
+        th {
+          padding: 0.85rem 1rem;
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+      }
+
+      tbody {
+        tr {
+          border-bottom: 1px solid $color-border;
+          transition: $transition-fast;
+
+          &:hover {
+            background-color: #f1f5f9;
+          }
+
+          td {
+            padding: 0.85rem 1rem;
+            font-size: 0.875rem;
+            color: $color-text-dark;
+          }
+        }
+      }
+    }
+  }
+}
