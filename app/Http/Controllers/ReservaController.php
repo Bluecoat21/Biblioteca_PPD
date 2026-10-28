@@ -28,7 +28,7 @@ class ReservaController extends Controller
         $recursosDisponibles = RecursoBibliografico::all();
         $usuarios = \App\Models\User::all();
 
-        return Inertia::render('Circulacion/Reservas', [
+        return Inertia::render('Circulacion/Index', [
             'reservas' => $reservas,
             'recursosDisponibles' => $recursosDisponibles,
             'usuarios' => $usuarios,

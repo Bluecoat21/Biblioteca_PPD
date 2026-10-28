@@ -12,7 +12,7 @@ class AutorController extends Controller
     public function index()
     {
         $autores = Autor::withCount('recursos')->paginate(10);
-        return Inertia::render('Catalogos/Autores', ['autores' => $autores]);
+        return Inertia::render('Catalogos/Autores/Index', ['autores' => $autores]);
     }
 
     public function store(StoreAutorRequest $request)

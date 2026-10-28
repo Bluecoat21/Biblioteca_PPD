@@ -88,6 +88,6 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 
     public function prestamos()
     {
-        // return $this->hasMany(Prestamo::class, 'user_id'); // Módulo 2
+        return $this->hasMany(Prestamo::class, 'user_id'); // Módulo 2
     }
 }

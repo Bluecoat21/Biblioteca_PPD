@@ -29,12 +29,12 @@ class MultaController extends Controller
                 'observaciones' => $m->observaciones,
             ]);
 
-return Inertia::render('Circulacion/Multas', ['multas' => $multas]);
+        return Inertia::render('Circulacion/Index', ['multas' => $multas]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('Circulacion/Multas', [
+        return Inertia::render('Circulacion/Create', [
             'usuarios' => User::orderBy('name')->get(['id', 'name', 'documento_identidad']),
         ]);
     }
@@ -46,7 +46,7 @@ return Inertia::render('Circulacion/Multas', ['multas' => $multas]);
         $data['fecha_generacion'] = now();
 
         Multa::create($data);
-        return redirect()->route('multas.index');
+        return redirect()->route('multas.index')->with('success', 'Multa registrada exitosamente.');
     }
 
     public function pagar(Multa $multa): RedirectResponse
@@ -62,7 +62,7 @@ return Inertia::render('Circulacion/Multas', ['multas' => $multas]);
             'fecha_pago' => now(),
         ]);
 
-        return redirect()->route('multas.index');
+        return redirect()->route('multas.index')->with('success', 'Multa pagada correctamente.');
     }
 
     public function condonar(Multa $multa): RedirectResponse
@@ -74,6 +74,6 @@ return Inertia::render('Circulacion/Multas', ['multas' => $multas]);
         }
 
         $multa->update(['estado' => 'condonada']);
-        return redirect()->route('multas.index');
+        return redirect()->route('multas.index')->with('success', 'Multa condonada exitosamente.');
     }
 }

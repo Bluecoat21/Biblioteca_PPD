@@ -18,4 +18,8 @@ class TipoUsuario extends Model
     {
         return $this->hasMany(User::class, 'tipo_usuario_id');
     }
+    public function politicasPrestamo()
+    {
+        return $this->hasMany(PoliticaPrestamo::class, 'tipo_usuario_id');
+    }
 }

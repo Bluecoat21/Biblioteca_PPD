@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 
 interface User {
     id: number;
@@ -18,8 +19,18 @@ interface Props {
 
 export default function UsuariosIndex({ usuarios = [] }: Props) {
     const [busqueda, setBusqueda] = useState('');
+    
     const listaUsuarios = Array.isArray(usuarios) ? usuarios : [];
-
+    const handleDelete = (id: number, nombre: string) => {
+        if (confirm(`¿Estás seguro de eliminar o dar de baja a "${nombre}"?`)) {
+            router.delete(`/usuarios/${id}`, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    // Notificación o actualización automática de la tabla
+                }
+            });
+        }
+    };
     return (
         <div className="usuarios-module min-h-screen bg-slate-50 p-6">
             <Head title="Directorio de Usuarios" />

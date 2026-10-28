@@ -17,7 +17,7 @@ class UsuarioController extends Controller
         $usuarios = User::with(['tipoUsuario', 'roles'])
             ->orderBy('name')
             ->get()
-            ->map(fn (User $u) => [
+            ->map(fn ($u) => [
                 'id' => $u->id,
                 'name' => $u->name,
                 'email' => $u->email,

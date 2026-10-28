@@ -6,27 +6,25 @@ use App\Models\Ejemplar;
 use App\Models\MovimientoEjemplar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class ReporteController extends Controller
 {
     public function dashboard()
     {
-        // 1. Conteo de ejemplares por estado
         $estados = Ejemplar::select('estado', DB::raw('count(*) as total'))
             ->groupBy('estado')
             ->pluck('total', 'estado');
 
-        // 2. Movimientos recientes (últimos 7 días)
         $movimientosRecientes = MovimientoEjemplar::with(['ejemplar', 'user:id,name'])
             ->where('created_at', '>=', now()->subDays(7))
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
 
-        // 3. Ejemplares perdidos o dañados (Alerta)
         $alertas = Ejemplar::whereIn('estado', ['perdido', 'dañado'])->count();
 
-        return response()->json([
+        return Inertia::render('Configuracion/Reportes/Index', [
             'resumen_estados' => $estados,
             'alertas_perdidos_dañados' => $alertas,
             'movimientos_recientes' => $movimientosRecientes
@@ -45,6 +43,9 @@ class ReporteController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return response()->json($reporte);
+        return Inertia::render('Configuracion/Reportes/Movimientos', [
+            'reporte' => $reporte,
+            'filtros' => $request->only(['fecha_inicio', 'fecha_fin'])
+        ]);
     }
 }

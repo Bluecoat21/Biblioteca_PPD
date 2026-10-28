@@ -16,7 +16,7 @@ class PrestamoController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Prestamo::with(['ejemplar.recursoBibliografico', 'usuario', 'bibliotecario']);
+        $query = Prestamo::with(['ejemplar.recurso', 'usuario', 'bibliotecario']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -28,7 +28,7 @@ class PrestamoController extends Controller
         }
 
         $prestamos = $query->latest()->paginate(10);
-        $ejemplaresDisponibles = Ejemplar::with('recursoBibliografico')->where('estado', 'disponible')->get();
+        $ejemplaresDisponibles = Ejemplar::with('recurso')->where('estado', 'disponible')->get();
         $usuarios = User::all();
 
         return Inertia::render('Circulacion/Index', [
@@ -39,6 +39,17 @@ class PrestamoController extends Controller
         ]);
     }
 
+    public function create()
+    {
+        $ejemplaresDisponibles = Ejemplar::with('recurso')->where('estado', 'disponible')->get();
+        $usuarios = User::all();
+
+        return Inertia::render('Circulacion/Create', [
+            'ejemplaresDisponibles' => $ejemplaresDisponibles,
+            'usuarios' => $usuarios,
+        ]);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -46,7 +57,7 @@ class PrestamoController extends Controller
             'user_id' => ['required', 'exists:users,id'],
         ]);
 
-        $ejemplar = Ejemplar::with('recursoBibliografico')->findOrFail($request->ejemplar_id);
+        $ejemplar = Ejemplar::with('recurso')->findOrFail($request->ejemplar_id);
         $usuario = User::with('tipoUsuario')->findOrFail($request->user_id);
 
         if ($ejemplar->estado !== 'disponible') {
@@ -62,7 +73,7 @@ class PrestamoController extends Controller
             return back()->withErrors(['user_id' => 'El usuario ha alcanzado el límite máximo de préstamos permitidos (' . $maxPermitidos . ').']);
         }
 
-        $tipoRecurso = $ejemplar->recursoBibliografico ? $ejemplar->recursoBibliografico->tipo : 'libro';
+        $tipoRecurso = $ejemplar->recurso ? $ejemplar->recurso->tipo : 'libro';
         $politica = null;
         
         if ($usuario->tipo_usuario_id) {
@@ -117,7 +128,7 @@ class PrestamoController extends Controller
 
     public function renovar($id)
     {
-        $prestamo = Prestamo::with(['ejemplar.recursoBibliografico', 'usuario.tipoUsuario'])->findOrFail($id);
+        $prestamo = Prestamo::with(['ejemplar.recurso', 'usuario.tipoUsuario'])->findOrFail($id);
 
         if ($prestamo->estado !== 'activo') {
             return back()->withErrors(['error' => 'Solo se pueden renovar préstamos activos.']);
@@ -135,7 +146,7 @@ class PrestamoController extends Controller
         }
 
         $tipoUsuarioId = $prestamo->usuario->tipo_usuario_id;
-        $tipoRecurso = $prestamo->ejemplar->recursoBibliografico->tipo ?? 'libro';
+        $tipoRecurso = $prestamo->ejemplar->recurso->tipo ?? 'libro';
 
         $politica = PoliticaPrestamo::where('tipo_usuario_id', $tipoUsuarioId)
             ->where('tipo_recurso', $tipoRecurso)

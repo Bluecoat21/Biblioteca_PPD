@@ -1,175 +1,84 @@
 import React from 'react';
 import { Head, useForm, Link } from '@inertiajs/react';
 
-
-declare const route: any;
-
-interface Editorial { id: number; nombre: string; }
-interface Autor { id: number; nombres: string; apellidos: string; }
-interface Categoria { id: number; nombre: string; }
-
 interface Props {
-    editoriales: Editorial[];
-    autores: Autor[];
-    categorias: Categoria[];
+    editoriales: any[];
+    autores: any[];
+    categorias: any[];
 }
 
-export default function Create({ editoriales = [], autores = [], categorias = [] }: Props) {
+export default function CatalogosCreate({ editoriales = [], autores = [], categorias = [] }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         titulo: '',
         isbn: '',
-        issn: '',
-        anio_publicacion: new Date().getFullYear(),
-        idioma: 'Español',
-        numero_paginas: '',
-        sinopsis: '',
         tipo: 'libro',
+        anio_publicacion: new Date().getFullYear(),
         editorial_id: '',
-        autores: [] as number[],
-        categorias: [] as number[],
+        autores: [],
+        categorias: [],
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post(route('recursos.store'));
-    };
-
-    const handleCheckboxChange = (id: number, field: 'autores' | 'categorias') => {
-        const currentValues = data[field];
-        if (currentValues.includes(id)) {
-            setData(field, currentValues.filter((item) => item !== id));
-        } else {
-            setData(field, [...currentValues, id]);
-        }
+        post('/recursos');
     };
 
     return (
-        <div className="catalog-wrapper">
-            <Head title="Registrar Recurso Bibliográfico" />
+        <div className="min-h-screen bg-slate-50 p-6">
+            <Head title="Nuevo Recurso - Biblioteca PPD" />
+            <div className="max-w-3xl mx-auto bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h1 className="text-2xl font-bold text-[#0f2b48] mb-1">Registrar Nuevo Recurso Bibliográfico</h1>
+                <p className="text-sm text-slate-500 mb-6">Completa los datos del acervo y su taxonomía.</p>
 
-            <div className="catalog-container">
-                <div className="catalog-header">
+                <form onSubmit={submit} className="space-y-4">
                     <div>
-                        <h1>Nuevo Recurso Bibliográfico</h1>
-                        <p>Registra una nueva obra o material físico/digital.</p>
-                    </div>
-                    <Link href={route('recursos.index')} className="back-link">
-                        ← Volver al catálogo
-                    </Link>
-                </div>
-
-                <form onSubmit={submit} className="catalog-card-form">
-                    <div className="form-group">
-                        <label>Título del Recurso <span>*</span></label>
+                        <label className="block text-sm font-semibold text-slate-700 mb-1">Título</label>
                         <input
                             type="text"
                             value={data.titulo}
                             onChange={(e) => setData('titulo', e.target.value)}
-                            placeholder="Ej. Arquitectura de Software Limpia"
+                            className="w-full border border-slate-300 rounded-lg p-2 text-sm"
+                            required
                         />
-                        {errors.titulo && <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>{errors.titulo}</span>}
+                        {errors.titulo && <span className="text-xs text-red-600">{errors.titulo}</span>}
                     </div>
 
-                    <div className="form-grid-3">
-                        <div className="form-group">
-                            <label>ISBN</label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">ISBN</label>
                             <input
                                 type="text"
                                 value={data.isbn}
                                 onChange={(e) => setData('isbn', e.target.value)}
-                                placeholder="978-3-16-148410-0"
+                                className="w-full border border-slate-300 rounded-lg p-2 text-sm"
                             />
-                            {errors.isbn && <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>{errors.isbn}</span>}
                         </div>
-
-                        <div className="form-group">
-                            <label>Año de Publicación</label>
-                            <input
-                                type="number"
-                                value={data.anio_publicacion}
-                                onChange={(e) => setData('anio_publicacion', Number(e.target.value))}
-                            />
-                            {errors.anio_publicacion && <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>{errors.anio_publicacion}</span>}
-                        </div>
-
-                        <div className="form-group">
-                            <label>Tipo de Recurso</label>
-                            <select value={data.tipo} onChange={(e) => setData('tipo', e.target.value)}>
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-1">Tipo de Recurso</label>
+                            <select
+                                value={data.tipo}
+                                onChange={(e) => setData('tipo', e.target.value)}
+                                className="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white"
+                            >
                                 <option value="libro">Libro</option>
                                 <option value="revista">Revista</option>
                                 <option value="tesis">Tesis</option>
                                 <option value="digital">Digital</option>
                             </select>
-                            {errors.tipo && <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>{errors.tipo}</span>}
                         </div>
                     </div>
 
-                    <div className="form-group">
-                        <label>Editorial <span>*</span></label>
-                        <select value={data.editorial_id} onChange={(e) => setData('editorial_id', e.target.value)}>
-                            <option value="">Seleccione una editorial...</option>
-                            {editoriales.map((ed) => (
-                                <option key={ed.id} value={ed.id}>{ed.nombre}</option>
-                            ))}
-                        </select>
-                        {errors.editorial_id && <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>{errors.editorial_id}</span>}
-                    </div>
-
-                    <div className="checkbox-grid-box">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>
-                            Autores Asociados <span style={{ color: '#ef4444' }}>*</span>
-                        </label>
-                        <div className="checkbox-container">
-                            {autores.map((autor) => (
-                                <label key={autor.id}>
-                                    <input
-                                        type="checkbox"
-                                        checked={data.autores.includes(autor.id)}
-                                        onChange={() => handleCheckboxChange(autor.id, 'autores')}
-                                    />
-                                    <span>{autor.nombres} {autor.apellidos}</span>
-                                </label>
-                            ))}
-                        </div>
-                        {errors.autores && <span style={{ color: '#ef4444', fontSize: '0.75rem', display: 'block', marginTop: '0.25rem' }}>{errors.autores}</span>}
-                    </div>
-
-                    <div className="checkbox-grid-box">
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>
-                            Categorías Temáticas <span style={{ color: '#ef4444' }}>*</span>
-                        </label>
-                        <div className="checkbox-container">
-                            {categorias.map((cat) => (
-                                <label key={cat.id}>
-                                    <input
-                                        type="checkbox"
-                                        checked={data.categorias.includes(cat.id)}
-                                        onChange={() => handleCheckboxChange(cat.id, 'categorias')}
-                                    />
-                                    <span>{cat.nombre}</span>
-                                </label>
-                            ))}
-                        </div>
-                        {errors.categorias && <span style={{ color: '#ef4444', fontSize: '0.75rem', display: 'block', marginTop: '0.25rem' }}>{errors.categorias}</span>}
-                    </div>
-
-                    <div className="form-group">
-                        <label>Sinopsis o Resumen</label>
-                        <textarea
-                            value={data.sinopsis}
-                            onChange={(e) => setData('sinopsis', e.target.value)}
-                            rows={4}
-                            placeholder="Descripción breve del contenido..."
-                        />
-                    </div>
-
-                    <div className="form-actions">
-                        <Link href={route('recursos.index')} className="btn-cancel">
+                    <div className="pt-4 flex items-center gap-3">
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="bg-[#0f2b48] hover:bg-[#1a426e] text-white px-5 py-2 rounded-lg text-sm font-semibold transition-all"
+                        >
+                            Guardar Recurso
+                        </button>
+                        <Link href="/recursos" className="text-sm text-slate-600 hover:underline">
                             Cancelar
                         </Link>
-                        <button type="submit" disabled={processing} className="btn-submit">
-                            {processing ? 'Guardando...' : 'Registrar Recurso'}
-                        </button>
                     </div>
                 </form>
             </div>

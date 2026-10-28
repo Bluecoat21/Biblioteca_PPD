@@ -8,16 +8,14 @@ use Inertia\Inertia;
 
 class UbicacionController extends Controller
 {
-
-public function index()
-{
-    $ubicaciones = Ubicacion::withCount('ejemplares')->get();
-    
-    // Cambiar response()->json por Inertia apuntando al módulo de Configuración
-    return Inertia::render('Configuracion/Ubicaciones', [
-        'ubicaciones' => $ubicaciones
-    ]);
-}
+    public function index()
+    {
+        $ubicaciones = Ubicacion::withCount('ejemplares')->get();
+        
+        return Inertia::render('Configuracion/Ubicaciones', [
+            'ubicaciones' => $ubicaciones
+        ]);
+    }
 
     public function store(Request $request)
     {
@@ -29,8 +27,8 @@ public function index()
             'activa' => 'boolean'
         ]);
 
-        $ubicacion = Ubicacion::create($validated);
-        return response()->json($ubicacion, 201);
+        Ubicacion::create($validated);
+        return redirect()->back()->with('success', 'Ubicación registrada exitosamente.');
     }
 
     public function update(Request $request, Ubicacion $ubicacion)
@@ -44,12 +42,12 @@ public function index()
         ]);
 
         $ubicacion->update($validated);
-        return response()->json($ubicacion);
+        return redirect()->back()->with('success', 'Ubicación actualizada correctamente.');
     }
 
     public function destroy(Ubicacion $ubicacion)
     {
-        $ubicacion->delete(); // SoftDelete
-        return response()->json(null, 204);
+        $ubicacion->delete();
+        return redirect()->back()->with('success', 'Ubicación eliminada lógicamente.');
     }
 }

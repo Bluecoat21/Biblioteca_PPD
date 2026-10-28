@@ -14,7 +14,7 @@ class CategoriaController extends Controller
         $categorias = Categoria::with('categoriaPadre')->withCount('recursos')->paginate(10);
         $categoriasPadre = Categoria::whereNull('categoria_padre_id')->get();
 
-        return Inertia::render('Categorias/Index', [
+        return Inertia::render('Catalogos/Categorias/Index', [
             'categorias' => $categorias,
             'categoriasPadre' => $categoriasPadre
         ]);

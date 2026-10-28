@@ -12,7 +12,7 @@ class EditorialController extends Controller
     public function index()
     {
         $editoriales = Editorial::withCount('recursosBibliograficos')->paginate(10);
-        return Inertia::render('Editoriales/Index', ['editoriales' => $editoriales]);
+        return Inertia::render('Catalogos/Editoriales/Index', ['editoriales' => $editoriales]);
     }
 
     public function store(StoreEditorialRequest $request)

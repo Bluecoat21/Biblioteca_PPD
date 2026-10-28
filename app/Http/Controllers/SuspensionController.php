@@ -17,7 +17,7 @@ class SuspensionController extends Controller
         $suspensiones = Suspension::with(['user:id,name,documento_identidad', 'creador:id,name'])
             ->orderByDesc('created_at')
             ->get()
-            ->map(fn (Suspension $s) => [
+            ->map(fn ($s) => [
                 'id' => $s->id,
                 'usuario' => $s->user?->name,
                 'documento' => $s->user?->documento_identidad,
@@ -28,14 +28,14 @@ class SuspensionController extends Controller
                 'creada_por' => $s->creador?->name,
             ]);
 
-        return Inertia::render('Suspensiones/Index', [
+        return Inertia::render('Usuarios/Suspensiones/Index', [
             'suspensiones' => $suspensiones,
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('Suspensiones/Create', [
+        return Inertia::render('Usuarios/Suspensiones/Create', [
             'usuarios' => User::where('estado', 'activo')
                 ->orderBy('name')
                 ->get(['id', 'name', 'documento_identidad']),
@@ -71,7 +71,7 @@ class SuspensionController extends Controller
             ]);
         });
 
-        return redirect()->route('suspensiones.index');
+        return redirect()->route('suspensiones.index')->with('success', 'Suspensión aplicada correctamente.');
     }
 
     public function levantar(Suspension $suspension): RedirectResponse
@@ -94,6 +94,6 @@ class SuspensionController extends Controller
             }
         });
 
-        return redirect()->route('suspensiones.index');
+        return redirect()->route('suspensiones.index')->with('success', 'Suspensión levantada con éxito.');
     }
 }

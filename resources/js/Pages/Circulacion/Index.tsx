@@ -55,12 +55,12 @@ export default function CirculacionIndex({ prestamos, ejemplaresDisponibles = []
                         <p className="text-sm text-slate-500">Control de entregas, devoluciones y disponibilidad de ejemplares</p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Link 
-                            href="/prestamos" 
-                            className="bg-[#0f2b48] hover:bg-[#1a426e] text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center gap-2"
-                        >
-                            <i className="fa-solid fa-plus"></i> Registrar Préstamo
-                        </Link>
+                    <Link 
+                        href="/prestamos/create" 
+                        className="bg-[#0f2b48] hover:bg-[#1a426e] text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all flex items-center gap-2"
+                    >
+                        <i className="fa-solid fa-plus"></i> Registrar Préstamo
+                    </Link>
                     </div>
                 </div>
 
