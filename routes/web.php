@@ -28,11 +28,13 @@ use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\SuspensionController;
 
-// Ruta pública de bienvenida
-Route::inertia('/', 'welcome')->name('home');
+// Ruta pública de bienvenida (Si el usuario ya está autenticado, lo redirige al dashboard)
+Route::middleware('guest')->group(function () {
+    Route::inertia('/', 'welcome')->name('home');
+});
 
-// Grupo principal protegido por autenticación y verificación
-Route::middleware(['auth', 'verified'])->group(function () {
+// Grupo principal protegido por autenticación, verificación y prevención de caché de historial
+Route::middleware(['auth', 'verified', 'cache.headers:no_store,no_cache,must_revalidate'])->group(function () {
 
     // Dashboard principal del sistema
     Route::get('/dashboard', function () {

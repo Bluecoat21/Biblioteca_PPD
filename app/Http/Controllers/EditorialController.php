@@ -17,12 +17,20 @@ class EditorialController extends Controller
 
     public function store(StoreEditorialRequest $request)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para registrar editoriales.');
+        }
+
         Editorial::create($request->validated());
         return redirect()->back()->with('success', 'Editorial registrada exitosamente.');
     }
 
     public function update(Request $request, Editorial $editorial)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para actualizar editoriales.');
+        }
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:255|unique:editoriales,nombre,' . $editorial->id,
             'pais' => 'nullable|string|max:100',
@@ -35,6 +43,10 @@ class EditorialController extends Controller
 
     public function destroy(Editorial $editorial)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para eliminar editoriales.');
+        }
+
         $editorial->delete();
         return redirect()->back()->with('success', 'Editorial eliminada exitosamente.');
     }

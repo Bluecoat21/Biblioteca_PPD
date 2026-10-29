@@ -11,12 +11,20 @@ class EjemplarController extends Controller
 {
     public function store(StoreEjemplarRequest $request, RecursoBibliografico $recurso)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para registrar ejemplares.');
+        }
+
         $recurso->ejemplares()->create($request->validated());
         return redirect()->back()->with('success', 'Ejemplar registrado correctamente en el inventario.');
     }
 
     public function update(Request $request, Ejemplar $ejemplar)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para actualizar ejemplares.');
+        }
+
         $validated = $request->validate([
             'codigo_barras' => 'required|string|max:50|unique:ejemplares,codigo_barras,' . $ejemplar->id,
             'signatura_topografica' => 'nullable|string|max:100',
@@ -34,6 +42,10 @@ class EjemplarController extends Controller
 
     public function destroy(Ejemplar $ejemplar)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para eliminar ejemplares.');
+        }
+
         $ejemplar->delete();
         return redirect()->back()->with('success', 'Ejemplar eliminado del inventario.');
     }

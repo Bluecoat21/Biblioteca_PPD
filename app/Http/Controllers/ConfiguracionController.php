@@ -10,6 +10,10 @@ class ConfiguracionController extends Controller
 {
     public function index()
     {
+        if (!auth()->user()->hasRole(['Administrador'])) {
+            abort(403, 'No tienes permisos para acceder a la configuración del sistema.');
+        }
+
         return Inertia::render('Configuracion/Index', [
             'configuraciones' => Configuracion::all()
         ]);
@@ -17,6 +21,10 @@ class ConfiguracionController extends Controller
 
     public function updateOrCreate(Request $request)
     {
+        if (!auth()->user()->hasRole(['Administrador'])) {
+            abort(403, 'No tienes permisos para modificar la configuración del sistema.');
+        }
+
         $validated = $request->validate([
             'clave' => 'required|string|max:255',
             'valor' => 'nullable|string',

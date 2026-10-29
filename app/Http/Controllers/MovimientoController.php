@@ -13,6 +13,10 @@ class MovimientoController extends Controller
 {
     public function registrarMovimiento(Request $request)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para registrar movimientos de inventario.');
+        }
+
         $validated = $request->validate([
             'ejemplar_id' => 'required|exists:ejemplares,id',
             'estado_nuevo' => ['required', Rule::in(['disponible', 'prestado', 'reservado', 'perdido', 'dañado', 'mantenimiento'])],

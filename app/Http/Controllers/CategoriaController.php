@@ -22,12 +22,20 @@ class CategoriaController extends Controller
 
     public function store(StoreCategoriaRequest $request)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para crear categorías.');
+        }
+
         Categoria::create($request->validated());
         return redirect()->back()->with('success', 'Categoría creada exitosamente.');
     }
 
     public function update(Request $request, Categoria $categoria)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para actualizar categorías.');
+        }
+
         $validated = $request->validate([
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
@@ -40,6 +48,10 @@ class CategoriaController extends Controller
 
     public function destroy(Categoria $categoria)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para eliminar categorías.');
+        }
+
         $categoria->delete();
         return redirect()->back()->with('success', 'Categoría eliminada exitosamente.');
     }

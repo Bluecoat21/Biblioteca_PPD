@@ -33,6 +33,10 @@ class RecursoBibliograficoController extends Controller
 
     public function create()
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para acceder a este formulario.');
+        }
+
         return Inertia::render('Catalogos/Create', [
             'editoriales' => Editorial::all(),
             'autores' => Autor::all(),
@@ -42,6 +46,10 @@ class RecursoBibliograficoController extends Controller
 
     public function store(StoreRecursoRequest $request)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para registrar recursos bibliográficos.');
+        }
+
         DB::transaction(function () use ($request) {
             $recurso = RecursoBibliografico::create($request->validated());
 

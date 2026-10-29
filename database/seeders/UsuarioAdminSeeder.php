@@ -13,10 +13,10 @@ class UsuarioAdminSeeder extends Seeder
         $tipo = TipoUsuario::where('nombre', 'Administrativo')->firstOrFail();
 
         $admin = User::firstOrCreate(
-            ['email' => 'admin@biblioteca.test'],
+            ['email' => '12345@1.test'],
             [
                 'name' => 'Administrador',
-                'password' => 'password',
+                'password' => '123',
                 'documento_identidad' => '00000000',
                 'tipo_usuario_id' => $tipo->id,
                 'estado' => 'activo',

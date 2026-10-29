@@ -17,12 +17,20 @@ class AutorController extends Controller
 
     public function store(StoreAutorRequest $request)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para registrar autores.');
+        }
+
         Autor::create($request->validated());
         return redirect()->back()->with('success', 'Autor registrado exitosamente.');
     }
 
     public function update(Request $request, Autor $autor)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para actualizar autores.');
+        }
+
         $validated = $request->validate([
             'nombres' => 'required|string|max:255',
             'apellidos' => 'required|string|max:255',
@@ -37,6 +45,10 @@ class AutorController extends Controller
 
     public function destroy(Autor $autor)
     {
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            abort(403, 'No tienes permisos para eliminar autores.');
+        }
+
         $autor->delete();
         return redirect()->back()->with('success', 'Autor eliminado exitosamente.');
     }

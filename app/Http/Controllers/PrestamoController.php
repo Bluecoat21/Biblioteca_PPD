@@ -43,6 +43,8 @@ class PrestamoController extends Controller
     {
         $ejemplaresDisponibles = Ejemplar::with('recurso')->where('estado', 'disponible')->get();
         $usuarios = User::all();
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+        abort(403, 'No tienes permisos para acceder a este formulario.');
 
         return Inertia::render('Circulacion/Create', [
             'ejemplaresDisponibles' => $ejemplaresDisponibles,
