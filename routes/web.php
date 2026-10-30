@@ -28,19 +28,30 @@ use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\SuspensionController;
 
-// Ruta pública de bienvenida (Si el usuario ya está autenticado, lo redirige al dashboard)
+// Ruta pública de bienvenida
 Route::middleware('guest')->group(function () {
     Route::inertia('/', 'welcome')->name('home');
 });
 
-// Grupo principal protegido por autenticación, verificación y prevención de caché de historial
+// Grupo principal protegido por autenticación, verificación y prevención de caché
 Route::middleware(['auth', 'verified', 'cache.headers:no_store,no_cache,must_revalidate'])->group(function () {
 
-    // Dashboard principal del sistema
+    // Dashboard principal del sistema con inyección explícita de roles y relaciones
     Route::get('/dashboard', function () {
+        $user = auth()->user();
+        if ($user) {
+            $user->load(['roles', 'tipoUsuario']);
+        }
+
         return Inertia::render('Dashboard', [
             'auth' => [
-                'user' => Auth::user(),
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'roles' => $user->getRoleNames(),
+                    'tipoUsuario' => $user->tipoUsuario,
+                ] : null,
             ],
         ]);
     })->name('dashboard');
@@ -78,7 +89,7 @@ Route::middleware(['auth', 'verified', 'cache.headers:no_store,no_cache,must_rev
     Route::post('/reservas', [ReservaController::class, 'store'])->name('reservas.store');
     Route::post('/reservas/{id}/cancelar', [ReservaController::class, 'cancelar'])->name('reservas.cancelar');
 
-    // Movimientos de Ejemplares (Auditoría de estados)
+    // Movimientos de Ejemplares
     Route::post('/movimientos', [MovimientoController::class, 'registrarMovimiento'])->name('movimientos.registrar');
     Route::get('/ejemplares/{ejemplarId}/historial', [MovimientoController::class, 'historialEjemplar'])->name('ejemplares.historial');
 
@@ -97,14 +108,10 @@ Route::middleware(['auth', 'verified', 'cache.headers:no_store,no_cache,must_rev
     | MÓDULO 3: CONFIGURACIÓN Y PARÁMETROS INSTITUCIONALES
     |--------------------------------------------------------------------------
     */
-    // Parámetros Generales del Sistema
     Route::get('/configuraciones', [ConfiguracionController::class, 'index'])->name('configuraciones.index');
     Route::post('/configuraciones', [ConfiguracionController::class, 'updateOrCreate'])->name('configuraciones.updateOrCreate');
 
-    // Ubicaciones físicas
     Route::resource('ubicaciones', UbicacionController::class);
-
-    // Políticas de Préstamo
     Route::resource('politicas-prestamo', PoliticaPrestamoController::class)->except(['show', 'edit', 'update']);
 
     // Tipos de Usuario
@@ -117,7 +124,7 @@ Route::middleware(['auth', 'verified', 'cache.headers:no_store,no_cache,must_rev
         Route::delete('tipos-usuario/{tipoUsuario}', [TipoUsuarioController::class, 'destroy'])->name('tipos-usuario.destroy');
     });
 
-    // Reportes y Estadísticas
+    // Reportes
     Route::get('/reportes/dashboard', [ReporteController::class, 'dashboard'])->name('reportes.dashboard');
     Route::get('/reportes/movimientos', [ReporteController::class, 'reporteMovimientos'])->name('reportes.movimientos');
 
@@ -127,7 +134,6 @@ Route::middleware(['auth', 'verified', 'cache.headers:no_store,no_cache,must_rev
     | MÓDULO 4: GESTIÓN DE USUARIOS Y SUSPENSIONES
     |--------------------------------------------------------------------------
     */
-    // Usuarios del Sistema
     Route::get('usuarios', [UsuarioController::class, 'index'])->middleware('can:usuarios.ver')->name('usuarios.index');
     Route::middleware('can:usuarios.gestionar')->group(function () {
         Route::get('usuarios/create', [UsuarioController::class, 'create'])->name('usuarios.create');
@@ -137,7 +143,6 @@ Route::middleware(['auth', 'verified', 'cache.headers:no_store,no_cache,must_rev
         Route::delete('usuarios/{usuario}', [UsuarioController::class, 'destroy'])->name('usuarios.destroy');
     });
 
-    // Suspensiones de Usuarios
     Route::get('suspensiones', [SuspensionController::class, 'index'])->middleware('can:suspensiones.ver')->name('suspensiones.index');
     Route::middleware('can:suspensiones.gestionar')->group(function () {
         Route::get('suspensiones/create', [SuspensionController::class, 'create'])->name('suspensiones.create');

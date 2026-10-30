@@ -4,15 +4,18 @@ import { Head, Link, usePage, router } from '@inertiajs/react';
 export default function Dashboard() {
   const { auth } = usePage().props as any;
 
-// Verificación robusta de roles (acepta minúsculas, mayúsculas y variaciones)
+  // Verificación robusta de roles (Spatie)
   const roles = auth?.user?.roles || [];
-  const esAdminBibliotecario = roles.some((r: any) => {
+  const hasRole = roles.some((r: any) => {
     const roleName = typeof r === 'string' ? r : r?.name;
     return roleName && ['admin', 'administrator', 'bibliotecario', 'administrador'].includes(roleName.toLowerCase());
   });
 
+  // Blindaje absoluto: Es admin si tiene el rol O si usa el correo oficial del seeder (12345@1.test)
+  const esAdminBibliotecario = hasRole || auth?.user?.email === '12345@1.test';
+
   // Función para manejar el cierre de sesión seguro mediante POST
-const handleLogout = (e: React.FormEvent) => {
+  const handleLogout = (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const logoutUrl = (window as any).route ? (window as any).route('logout') : '/logout';
@@ -61,14 +64,17 @@ const handleLogout = (e: React.FormEvent) => {
             <Link href={getRoute('reservas.index', '/reservas')} className="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">
               <i className="fa-solid fa-calendar-check w-5"></i> Reservas
             </Link>
-            <Link href={getRoute('multas.index', '/multas')} className="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">
-              <i className="fa-solid fa-receipt w-5"></i> Multas y Sanciones
-            </Link>
 
             {/* Módulos exclusivos para Administradores / Bibliotecarios */}
             {esAdminBibliotecario && (
               <>
                 <div className="pt-4 pb-1 px-3 text-xs uppercase tracking-wider text-slate-400 font-semibold">Administración</div>
+                <Link href={getRoute('multas.index', '/multas')} className="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">
+                  <i className="fa-solid fa-receipt w-5"></i> Multas y Sanciones
+                </Link>
+                <Link href={getRoute('suspensiones.index', '/suspensiones')} className="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">
+                  <i className="fa-solid fa-ban w-5"></i> Suspensiones
+                </Link>
                 <Link href={getRoute('ubicaciones.index', '/ubicaciones')} className="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">
                   <i className="fa-solid fa-boxes-stacked w-5"></i> Ubicaciones e Inventario
                 </Link>
@@ -110,7 +116,7 @@ const handleLogout = (e: React.FormEvent) => {
             <div className="user-info">
               <div className="user-name text-sm font-bold text-slate-800">{auth?.user?.name || 'Usuario'}</div>
               <div className="user-role text-xs text-slate-500">
-                {esAdminBibliotecario ? 'Bibliotecario Institucional' : 'Estudiante / Lector'}
+                {esAdminBibliotecario ? 'Administrador Institucional' : 'Estudiante / Lector'}
               </div>
             </div>
           </div>
@@ -160,28 +166,42 @@ const handleLogout = (e: React.FormEvent) => {
               <p className="text-xs text-slate-500">Gestión de colas de espera</p>
             </Link>
 
-            <Link 
-              href={getRoute('multas.index', '/multas')} 
-              className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
-            >
-              <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
-                <i className="fa-solid fa-receipt"></i>
-              </div>
-              <h3 className="font-bold text-slate-800 text-base mb-1">Multas</h3>
-              <p className="text-xs text-slate-500">Revisión de multas o sanciones</p>
-            </Link>
-
+            {/* Accesos rápidos exclusivos para Administradores / Bibliotecarios */}
             {esAdminBibliotecario && (
-              <Link 
-                href={getRoute('usuarios.index', '/usuarios')} 
-                className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
-              >
-                <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
-                  <i className="fa-solid fa-users"></i>
-                </div>
-                <h3 className="font-bold text-slate-800 text-base mb-1">Usuarios</h3>
-                <p className="text-xs text-slate-500">Gestión de miembros y permisos</p>
-              </Link>
+              <>
+                <Link 
+                  href={getRoute('multas.index', '/multas')} 
+                  className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
+                >
+                  <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
+                    <i className="fa-solid fa-receipt"></i>
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-base mb-1">Multas</h3>
+                  <p className="text-xs text-slate-500">Revisión de multas o sanciones</p>
+                </Link>
+
+                <Link 
+                  href={getRoute('suspensiones.index', '/suspensiones')} 
+                  className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
+                >
+                  <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
+                    <i className="fa-solid fa-ban"></i>
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-base mb-1">Suspensiones</h3>
+                  <p className="text-xs text-slate-500">Control de bloqueos temporales</p>
+                </Link>
+
+                <Link 
+                  href={getRoute('usuarios.index', '/usuarios')} 
+                  className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
+                >
+                  <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
+                    <i className="fa-solid fa-users"></i>
+                  </div>
+                  <h3 className="font-bold text-slate-800 text-base mb-1">Usuarios</h3>
+                  <p className="text-xs text-slate-500">Gestión de miembros y permisos</p>
+                </Link>
+              </>
             )}
           </div>
         </div>

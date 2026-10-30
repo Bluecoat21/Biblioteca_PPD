@@ -18,16 +18,19 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
 
-        if ($user) {
-            // Cargamos explícitamente los roles para que lleguen a React
-            $user->load(['roles', 'tipoUsuario']);
-        }
-
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $user,
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'documento_identidad' => $user->documento_identidad ?? null,
+                    // Forzamos un arreglo plano de strings con los roles (ej. ['Administrador'])
+                    'roles' => $user->getRoleNames(), 
+                    'tipoUsuario' => $user->tipoUsuario,
+                ] : null,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];

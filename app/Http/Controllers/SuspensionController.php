@@ -2,98 +2,84 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\SuspensionRequest;
 use App\Models\Suspension;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Inertia\Response;
 
 class SuspensionController extends Controller
 {
-    public function index(): Response
+    /**
+     * Mostrar listado de suspensiones.
+     */
+    public function index(Request $request)
     {
-        $suspensiones = Suspension::with(['user:id,name,documento_identidad', 'creador:id,name'])
-            ->orderByDesc('created_at')
-            ->get()
-            ->map(fn ($s) => [
-                'id' => $s->id,
-                'usuario' => $s->user?->name,
-                'documento' => $s->user?->documento_identidad,
-                'motivo' => $s->motivo,
-                'fecha_inicio' => $s->fecha_inicio?->format('d/m/Y'),
-                'fecha_fin' => $s->fecha_fin?->format('d/m/Y') ?? 'Indefinida',
-                'activa' => $s->activa,
-                'creada_por' => $s->creador?->name,
-            ]);
+        $query = Suspension::with(['user', 'creador']);
 
-        return Inertia::render('Usuarios/Suspensiones/Index', [
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $suspensiones = $query->latest()->paginate(10);
+
+        return Inertia::render('Circulacion/Suspensiones', [
             'suspensiones' => $suspensiones,
+            'filters' => $request->only(['search'])
         ]);
     }
 
-    public function create(): Response
+    /**
+     * Mostrar formulario para crear una nueva suspensión.
+     */
+    public function create()
     {
-        return Inertia::render('Usuarios/Suspensiones/Create', [
-            'usuarios' => User::where('estado', 'activo')
-                ->orderBy('name')
-                ->get(['id', 'name', 'documento_identidad']),
+        // Obtenemos los usuarios disponibles para suspender
+        $usuarios = User::select('id', 'name', 'email')->get();
+
+        return Inertia::render('Circulacion/SuspensionesCreate', [
+            'usuarios' => $usuarios
         ]);
     }
 
-    public function store(SuspensionRequest $request): RedirectResponse
+    /**
+     * Almacenar una nueva suspensión en la base de datos.
+     */
+    public function store(Request $request)
     {
-        $data = $request->validated();
-        $usuario = User::findOrFail($data['user_id']);
+        $request->validate([
+            'user_id' => ['required', 'exists:users,id'],
+            'motivo' => ['required', 'string', 'max:255'],
+            'fecha_inicio' => ['required', 'date'],
+            'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
+        ]);
 
-        if ($usuario->id === auth()->id()) {
-            return back()->withErrors([
-                'user_id' => 'No puedes suspender tu propio usuario.',
-            ]);
-        }
+        Suspension::create([
+            'user_id' => $request->user_id,
+            'motivo' => $request->motivo,
+            'fecha_inicio' => $request->fecha_inicio,
+            'fecha_fin' => $request->fecha_fin,
+            'activa' => true,
+            'created_by' => auth()->id(), // Registra al admin o bibliotecario logueado
+        ]);
 
-        if ($usuario->suspensiones()->where('activa', true)->exists()) {
-            return back()->withErrors([
-                'user_id' => 'Este usuario ya tiene una suspensión activa.',
-            ]);
-        }
-
-        DB::transaction(function () use ($data, $usuario) {
-            Suspension::create($data + [
-                'activa' => true,
-                'created_by' => auth()->id(),
-            ]);
-
-            $usuario->update([
-                'estado' => 'suspendido',
-                'fecha_suspension_hasta' => $data['fecha_fin'] ?? null,
-            ]);
-        });
-
-        return redirect()->route('suspensiones.index')->with('success', 'Suspensión aplicada correctamente.');
+        return redirect()->route('suspensiones.index')->with('success', 'Suspensión aplicada con éxito.');
     }
 
-    public function levantar(Suspension $suspension): RedirectResponse
+    /**
+     * Levantar / desactivar una suspensión activa.
+     */
+    public function levantar($id)
     {
-        if (! $suspension->activa) {
-            return back()->withErrors([
-                'suspension' => 'Esta suspensión ya fue levantada.',
-            ]);
-        }
+        $suspension = Suspension::findOrFail($id);
+        
+        $suspension->update([
+            'activa' => false
+        ]);
 
-        DB::transaction(function () use ($suspension) {
-            $suspension->update(['activa' => false]);
-            $usuario = $suspension->user;
-
-            if ($usuario && $usuario->estado === 'suspendido') {
-                $usuario->update([
-                    'estado' => 'activo',
-                    'fecha_suspension_hasta' => null,
-                ]);
-            }
-        });
-
-        return redirect()->route('suspensiones.index')->with('success', 'Suspensión levantada con éxito.');
+        return back()->with('success', 'Suspensión levantada correctamente.');
     }
 }

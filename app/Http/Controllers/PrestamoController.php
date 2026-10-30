@@ -14,9 +14,14 @@ use Illuminate\Support\Facades\DB;
 
 class PrestamoController extends Controller
 {
-    public function index(Request $request)
+public function index(Request $request)
     {
         $query = Prestamo::with(['ejemplar.recurso', 'usuario', 'bibliotecario']);
+
+        // Blindaje por rol: Si es lector/estudiante, solo ve sus propios préstamos
+        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+            $query->where('user_id', auth()->id());
+        }
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -37,7 +42,7 @@ class PrestamoController extends Controller
             'usuarios' => $usuarios,
             'filters' => $request->only(['search'])
         ]);
-    } // <--- Asegúrate de que esta llave cierre correctamente index()
+    }
 
     public function create()
     {
@@ -62,10 +67,29 @@ class PrestamoController extends Controller
         ]);
 
         $ejemplar = Ejemplar::with('recurso')->findOrFail($request->ejemplar_id);
-        $usuario = User::with('tipoUsuario')->findOrFail($request->user_id);
+        $usuario = User::with(['tipoUsuario', 'suspensiones', 'multas'])->findOrFail($request->user_id);
 
         if ($ejemplar->estado !== 'disponible') {
             return back()->withErrors(['ejemplar_id' => 'El ejemplar no se encuentra disponible (Estado actual: ' . $ejemplar->estado . ').']);
+        }
+
+        // VALIDACIÓN 1: Verificar si tiene suspensión activa
+        $tieneSuspensionActiva = $usuario->suspensiones()
+            ->where('activa', true)
+            ->whereDate('fecha_fin', '>=', Carbon::now())
+            ->exists();
+
+        if ($tieneSuspensionActiva) {
+            return back()->withErrors(['user_id' => 'El usuario cuenta con una suspensión activa y no puede solicitar préstamos.']);
+        }
+
+        // VALIDACIÓN 2: Verificar si tiene multas pendientes de pago
+        $tieneMultasPendientes = $usuario->multas()
+            ->where('estado', 'pendiente')
+            ->exists();
+
+        if ($tieneMultasPendientes) {
+            return back()->withErrors(['user_id' => 'El usuario tiene multas pendientes de pago. Debe saldarlas antes de solicitar un nuevo préstamo.']);
         }
 
         $prestamosActivos = Prestamo::where('user_id', $usuario->id)
@@ -105,9 +129,9 @@ class PrestamoController extends Controller
         return redirect()->back()->with('success', 'Préstamo registrado exitosamente.');
     }
 
-    public function devolver($id)
+ public function devolver($id)
     {
-        $prestamo = Prestamo::with('ejemplar')->findOrFail($id);
+        $prestamo = Prestamo::with(['ejemplar', 'usuario'])->findOrFail($id);
 
         if ($prestamo->estado === 'devuelto') {
             return back()->withErrors(['error' => 'Este préstamo ya fue devuelto.']);
@@ -117,17 +141,41 @@ class PrestamoController extends Controller
             $hoy = Carbon::now();
             $esperada = Carbon::parse($prestamo->fecha_devolucion_esperada);
             
+            // 1. Actualizamos el estado del préstamo y la fecha real de devolución
             $prestamo->update([
                 'fecha_devolucion_real' => $hoy,
                 'estado' => 'devuelto',
             ]);
 
+            // 2. Liberamos el ejemplar para que vuelva a estar disponible
             if ($prestamo->ejemplar) {
                 $prestamo->ejemplar->update(['estado' => 'disponible']);
             }
+
+            // 3. AUTOMATIZACIÓN DE MULTA POR ATRASO
+            if ($hoy->greaterThan($esperada)) {
+                $diasAtraso = $esperada->diffInDays($hoy);
+
+                // Obtenemos la tarifa diaria desde la tabla configuraciones (S/. 2.00 por defecto si no existe)
+                $configMonto = \App\Models\Configuracion::where('clave', 'monto_multa_dia')->value('valor');
+                $tarifaDiaria = $configMonto ? floatval($configMonto) : 2.00;
+
+                $montoTotal = $diasAtraso * $tarifaDiaria;
+
+                \App\Models\Multa::create([
+                    'user_id' => $prestamo->user_id,
+                    'prestamo_id' => $prestamo->id,
+                    'monto' => $montoTotal,
+                    'motivo' => "Retraso automático en devolución por {$diasAtraso} día(s).",
+                    'dias_atraso' => $diasAtraso,
+                    'estado' => 'pendiente',
+                    'fecha_generacion' => $hoy,
+                    'observaciones' => 'Generado automáticamente por el sistema al procesar la devolución.',
+                ]);
+            }
         });
 
-        return redirect()->back()->with('success', 'Devolución registrada correctamente.');
+        return redirect()->back()->with('success', 'Devolución registrada correctamente y multas evaluadas.');
     }
 
     public function renovar($id)

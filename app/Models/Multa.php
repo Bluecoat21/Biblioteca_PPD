@@ -4,6 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property int|null $prestamo_id
+ * @property float $monto
+ * @property string $motivo
+ * @property int|null $dias_atraso
+ * @property string $estado
+ * @property \Illuminate\Support\Carbon $fecha_generacion
+ * @property \Illuminate\Support\Carbon|null $fecha_pago
+ * @property string|null $observaciones
+ */
 class Multa extends Model
 {
     protected $table = 'multas';
@@ -33,6 +45,6 @@ class Multa extends Model
 
     public function prestamo()
     {
-         return $this->belongsTo(Prestamo::class, 'prestamo_id'); // Módulo 2
+         return $this->belongsTo(Prestamo::class, 'prestamo_id');
     }
 }

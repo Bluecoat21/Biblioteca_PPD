@@ -3,35 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reserva;
-use App\Models\RecursoBibliografico;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class ReservaController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Reserva::with(['recursoBibliografico', 'usuario']);
+        $query = Reserva::with(['usuario', 'recursoBibliografico']);
 
         if ($request->has('search')) {
             $search = $request->search;
             $query->whereHas('usuario', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%");
-            })->orWhereHas('recursoBibliografico', function ($q) use ($search) {
-                $q->where('titulo', 'like', "%{$search}%");
             });
         }
 
         $reservas = $query->latest()->paginate(10);
-        $recursosDisponibles = RecursoBibliografico::all();
-        $usuarios = \App\Models\User::all();
 
-        return Inertia::render('Circulacion/Index', [
+        return Inertia::render('Circulacion/Reservas', [
             'reservas' => $reservas,
-            'recursosDisponibles' => $recursosDisponibles,
-            'usuarios' => $usuarios,
             'filters' => $request->only(['search'])
         ]);
     }
@@ -43,51 +34,38 @@ class ReservaController extends Controller
             'user_id' => ['required', 'exists:users,id'],
         ]);
 
-        $reservaExistente = Reserva::where('recurso_bibliografico_id', $request->recurso_bibliografico_id)
-            ->where('user_id', $request->user_id)
+        // Validar si el usuario ya tiene una reserva pendiente para este recurso
+        $reservaExistente = Reserva::where('user_id', $request->user_id)
+            ->where('recurso_bibliografico_id', $request->recurso_bibliografico_id)
             ->where('estado', 'pendiente')
             ->exists();
 
         if ($reservaExistente) {
-            return back()->withErrors(['error' => 'El usuario ya cuenta con una reserva pendiente para este recurso.']);
+            return back()->withErrors(['error' => 'Ya cuenta con una reserva pendiente para este recurso bibliográfico.']);
         }
 
-        $ultimaPosicion = Reserva::where('recurso_bibliografico_id', $request->recurso_bibliografico_id)
+        // Calcular la posición actual en la cola de espera
+        $posicionCola = Reserva::where('recurso_bibliografico_id', $request->recurso_bibliografico_id)
             ->where('estado', 'pendiente')
-            ->max('posicion_cola') ?? 0;
+            ->count() + 1;
 
         Reserva::create([
             'recurso_bibliografico_id' => $request->recurso_bibliografico_id,
             'user_id' => $request->user_id,
-            'fecha_reserva' => Carbon::now(),
-            'fecha_expiracion' => Carbon::now()->addDays(3),
+            'fecha_reserva' => now(),
+            'fecha_expiracion' => now()->addDays(3), // Margen de 3 días
             'estado' => 'pendiente',
-            'posicion_cola' => $ultimaPosicion + 1,
+            'posicion_cola' => $posicionCola,
         ]);
 
-        return redirect()->back()->with('success', 'Reserva registrada exitosamente en la cola de espera.');
+        return redirect()->back()->with('success', "Reserva registrada con éxito. Posición en cola: #{$posicionCola}");
     }
 
     public function cancelar($id)
     {
         $reserva = Reserva::findOrFail($id);
+        $reserva->update(['estado' => 'cancelada']);
 
-        if ($reserva->estado !== 'pendiente') {
-            return back()->withErrors(['error' => 'Solo se pueden cancelar reservas pendientes.']);
-        }
-
-        DB::transaction(function () use ($reserva) {
-            $recursoId = $reserva->recurso_bibliografico_id;
-            $posicionCancelada = $reserva->posicion_cola;
-
-            $reserva->update(['estado' => 'cancelada']);
-
-            Reserva::where('recurso_bibliografico_id', $recursoId)
-                ->where('estado', 'pendiente')
-                ->where('posicion_cola', '>', $posicionCancelada)
-                ->decrement('posicion_cola');
-        });
-
-        return redirect()->back()->with('success', 'Reserva cancelada correctamente.');
+        return back()->with('success', 'Reserva cancelada correctamente.');
     }
 }
