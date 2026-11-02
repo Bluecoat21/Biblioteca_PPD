@@ -6,6 +6,9 @@ use App\Models\User;
 use App\Models\TipoUsuario;
 use App\Models\Configuracion;
 use App\Models\Ubicacion;
+use App\Models\Editorial;
+use App\Models\Autor;
+use App\Models\RecursoBibliografico;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Permission;
@@ -68,7 +71,7 @@ class DatabaseSeeder extends Seeder
 
         Ubicacion::firstOrCreate(['nombre' => 'Estante A-1'], ['edificio' => 'Principal', 'piso' => '1', 'activa' => true]);
 
-        // 6. Usuario de Prueba Regular (Estudiante con su rol asignado)
+        // 6. Usuario de Prueba Regular (Estudiante)
         $estudiante = User::firstOrCreate(
             ['email' => '12345@2.com'], 
             [
@@ -81,5 +84,37 @@ class DatabaseSeeder extends Seeder
             ]
         );
         $estudiante->assignRole('Estudiante');
+
+        // 7. Datos de Prueba para Recursos Bibliográficos (Físicos y Digitales)
+        $editorial = Editorial::firstOrCreate(['nombre' => 'Editorial Académica PPD'], ['pais' => 'Perú']);
+        
+        $autor1 = Autor::firstOrCreate(['nombres' => 'Ellis', 'apellidos' => 'Horowitz']);
+        $autor2 = Autor::firstOrCreate(['nombres' => 'Estudiante', 'apellidos' => 'PPD']);
+
+        // Libro Físico
+        $libroFisico = RecursoBibliografico::create([
+            'titulo' => 'Estructuras de Datos Avanzadas',
+            'isbn' => '978-0130353291',
+            'tipo' => 'libro',
+            'anio_publicacion' => 2024,
+            'editorial_id' => $editorial->id,
+            'es_digital' => false,
+            'sinopsis' => 'Texto fundamental para el diseño y análisis de algoritmos.'
+        ]);
+        // Usamos sync especificando el orden sin afectar timestamps inexistentes en pivote
+        $libroFisico->autores()->sync([$autor1->id => ['orden' => 1]]);
+
+        // Tesis o Libro Digital en PDF
+        $tesisDigital = RecursoBibliografico::create([
+            'titulo' => 'Implementación de Sistemas Web con Laravel y React',
+            'isbn' => '978-9972000011',
+            'tipo' => 'tesis',
+            'anio_publicacion' => 2026,
+            'editorial_id' => $editorial->id,
+            'es_digital' => true,
+            'archivo_url' => 'recursos_digitales/tesis_ejemplo.pdf',
+            'sinopsis' => 'Tesis de investigación sobre arquitecturas desacopladas y rendimiento.'
+        ]);
+        $tesisDigital->autores()->sync([$autor2->id => ['orden' => 1]]);
     }
 }

@@ -3,8 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use App\Models\RecursoBibliografico; // <-- Añadido para la estantería virtual
 
 // --- CONTROLADORES DE CATÁLOGOS ---
+use App\Models\Recurso;
 use App\Http\Controllers\AutorController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\EditorialController;
@@ -36,12 +38,14 @@ Route::middleware('guest')->group(function () {
 // Grupo principal protegido por autenticación, verificación y prevención de caché
 Route::middleware(['auth', 'verified', 'cache.headers:no_store,no_cache,must_revalidate'])->group(function () {
 
-    // Dashboard principal del sistema con inyección explícita de roles y relaciones
+    // Dashboard principal del sistema con inyección explícita de roles, relaciones y recursos virtuales para la estantería
     Route::get('/dashboard', function () {
         $user = auth()->user();
         if ($user) {
             $user->load(['roles', 'tipoUsuario']);
         }
+
+        $recursosRecientes = RecursoBibliografico::latest()->take(8)->get();
 
         return Inertia::render('Dashboard', [
             'auth' => [
@@ -53,6 +57,7 @@ Route::middleware(['auth', 'verified', 'cache.headers:no_store,no_cache,must_rev
                     'tipoUsuario' => $user->tipoUsuario,
                 ] : null,
             ],
+            'recursosRecientes' => $recursosRecientes, 
         ]);
     })->name('dashboard');
 
@@ -62,9 +67,28 @@ Route::middleware(['auth', 'verified', 'cache.headers:no_store,no_cache,must_rev
     |--------------------------------------------------------------------------
     */
     Route::resource('recursos', RecursoBibliograficoController::class);
-    Route::resource('autores', AutorController::class);
-    Route::resource('editoriales', EditorialController::class);
-    Route::resource('categorias', CategoriaController::class);
+    
+    Route::get('recursos/{recurso}/descargar', [RecursoBibliograficoController::class, 'descargarArchivo'])->name('recursos.descargar');
+
+    // --- RUTAS AJUSTADAS PARA TUS ARCHIVOS EN LA CARPETA CATALOGOS ---
+    // Al usar Route::get directo en lugar de Route::resource, nos aseguramos de que 
+    // Laravel busque el archivo exacto en Catalogos/Autores.tsx, Catalogos/Categorias.tsx, etc.
+    Route::get('autores', [AutorController::class, 'index'])->name('autores.index');
+    Route::get('editoriales', [EditorialController::class, 'index'])->name('editoriales.index');
+    Route::get('categorias', [CategoriaController::class, 'index'])->name('categorias.index');
+
+    // Mantenemos las rutas de store, update y destroy para que los CRUDs sigan funcionando:
+    Route::post('autores', [AutorController::class, 'store'])->name('autores.store');
+    Route::put('autores/{autor}', [AutorController::class, 'update'])->name('autores.update');
+    Route::delete('autores/{autor}', [AutorController::class, 'destroy'])->name('autores.destroy');
+
+    Route::post('editoriales', [EditorialController::class, 'store'])->name('editoriales.store');
+    Route::put('editoriales/{editorial}', [EditorialController::class, 'update'])->name('editoriales.update');
+    Route::delete('editoriales/{editorial}', [EditorialController::class, 'destroy'])->name('editoriales.destroy');
+
+    Route::post('categorias', [CategoriaController::class, 'store'])->name('categorias.store');
+    Route::put('categorias/{categoria}', [CategoriaController::class, 'update'])->name('categorias.update');
+    Route::delete('categorias/{categoria}', [CategoriaController::class, 'destroy'])->name('categorias.destroy');
 
     // Gestión de Ejemplares (Anidados a Recursos)
     Route::post('recursos/{recurso}/ejemplares', [EjemplarController::class, 'store'])->name('ejemplares.store');

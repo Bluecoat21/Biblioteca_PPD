@@ -14,5 +14,5 @@ class RecursoAutor extends Pivot
         'orden',
     ];
 
-    public $timestamps = true;
+    public $timestamps = false; // Cambiado a false
 }

@@ -23,7 +23,7 @@ class Autor extends Model
     public function recursos()
     {
         return $this->belongsToMany(RecursoBibliografico::class, 'recurso_autor', 'autor_id', 'recurso_bibliografico_id')
-                    ->withPivot('orden')
-                    ->withTimestamps();
+                    ->withPivot('orden');
+                    
     }
 }

@@ -14,9 +14,17 @@ class CategoriaController extends Controller
         $categorias = Categoria::with('categoriaPadre')->withCount('recursos')->paginate(10);
         $categoriasPadre = Categoria::whereNull('categoria_padre_id')->get();
 
-        return Inertia::render('Catalogos/Categorias/Index', [
+        // Calculamos si es admin directamente en el backend
+        $esAdmin = false;
+        if (auth()->check()) {
+            $esAdmin = auth()->user()->hasRole(['Administrador', 'Bibliotecario'])
+                       || auth()->user()->email === '12345@1.test';
+        }
+
+        return Inertia::render('Catalogos/Categorias', [
             'categorias' => $categorias,
-            'categoriasPadre' => $categoriasPadre
+            'categoriasPadre' => $categoriasPadre,
+            'esAdmin' => $esAdmin // <--- Enviamos a React
         ]);
     }
 

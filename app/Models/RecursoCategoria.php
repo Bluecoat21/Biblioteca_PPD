@@ -13,5 +13,5 @@ class RecursoCategoria extends Pivot
         'categoria_id',
     ];
 
-    public $timestamps = true;
+    public $timestamps = false; // Cambiado a false
 }

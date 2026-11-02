@@ -12,7 +12,18 @@ class EditorialController extends Controller
     public function index()
     {
         $editoriales = Editorial::withCount('recursosBibliograficos')->paginate(10);
-        return Inertia::render('Catalogos/Editoriales/Index', ['editoriales' => $editoriales]);
+
+        // Calculamos si es admin directamente en el backend
+        $esAdmin = false;
+        if (auth()->check()) {
+            $esAdmin = auth()->user()->hasRole(['Administrador', 'Bibliotecario'])
+                       || auth()->user()->email === '12345@1.test';
+        }
+
+        return Inertia::render('Catalogos/Editoriales', [
+            'editoriales' => $editoriales,
+            'esAdmin' => $esAdmin // <--- Enviamos a React
+        ]);
     }
 
     public function store(StoreEditorialRequest $request)

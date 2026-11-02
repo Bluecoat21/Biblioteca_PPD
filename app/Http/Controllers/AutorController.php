@@ -12,7 +12,18 @@ class AutorController extends Controller
     public function index()
     {
         $autores = Autor::withCount('recursos')->paginate(10);
-        return Inertia::render('Catalogos/Autores/Index', ['autores' => $autores]);
+
+        // Calculamos si es admin directamente en el backend
+        $esAdmin = false;
+        if (auth()->check()) {
+            $esAdmin = auth()->user()->hasRole(['Administrador', 'Bibliotecario'])
+                       || auth()->user()->email === '12345@1.test';
+        }
+
+        return Inertia::render('Catalogos/Autores', [
+            'autores' => $autores,
+            'esAdmin' => $esAdmin // <--- Enviamos a React
+        ]);
     }
 
     public function store(StoreAutorRequest $request)

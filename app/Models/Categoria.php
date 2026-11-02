@@ -18,7 +18,6 @@ class Categoria extends Model
         'categoria_padre_id',
     ];
 
-    // Relación recursiva para subcategorías
     public function categoriaPadre()
     {
         return $this->belongsTo(Categoria::class, 'categoria_padre_id');
@@ -31,7 +30,7 @@ class Categoria extends Model
 
     public function recursos()
     {
-        return $this->belongsToMany(RecursoBibliografico::class, 'recurso_categoria', 'categoria_id', 'recurso_bibliografico_id')
-                    ->withTimestamps();
+        return $this->belongsToMany(RecursoBibliografico::class, 'recurso_categoria', 'categoria_id', 'recurso_bibliografico_id');
+        // Eliminado withTimestamps()
     }
 }

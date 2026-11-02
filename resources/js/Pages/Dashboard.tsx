@@ -1,20 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, Link, usePage, router } from '@inertiajs/react';
 
 export default function Dashboard() {
-  const { auth } = usePage().props as any;
+  const { auth, recursosRecientes = [] } = usePage().props as any;
+  const [busquedaDashboard, setBusquedaDashboard] = useState('');
+  
+  const [paginaActual, setPaginaActual] = useState(1);
+  const librosPorPagina = 20;
 
-  // Verificación robusta de roles (Spatie)
   const roles = auth?.user?.roles || [];
   const hasRole = roles.some((r: any) => {
     const roleName = typeof r === 'string' ? r : r?.name;
     return roleName && ['admin', 'administrator', 'bibliotecario', 'administrador'].includes(roleName.toLowerCase());
   });
 
-  // Blindaje absoluto: Es admin si tiene el rol O si usa el correo oficial del seeder (12345@1.test)
   const esAdminBibliotecario = hasRole || auth?.user?.email === '12345@1.test';
 
-  // Función para manejar el cierre de sesión seguro mediante POST
   const handleLogout = (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -34,11 +35,21 @@ export default function Dashboard() {
     return fallbackUrl;
   };
 
+  const listaRecursos = Array.isArray(recursosRecientes) ? recursosRecientes : (recursosRecientes?.data || []);
+  const recursosFiltrados = listaRecursos.filter((rec: any) => 
+    rec.titulo.toLowerCase().includes(busquedaDashboard.toLowerCase()) ||
+    (rec.tipo && rec.tipo.toLowerCase().includes(busquedaDashboard.toLowerCase()))
+  );
+
+  const totalPaginas = Math.ceil(recursosFiltrados.length / librosPorPagina) || 1;
+  const indiceUltimoRecurso = paginaActual * librosPorPagina;
+  const indicePrimerRecurso = indiceUltimoRecurso - librosPorPagina;
+  const recursosPaginados = recursosFiltrados.slice(indicePrimerRecurso, indiceUltimoRecurso);
+
   return (
     <div className="app-layout flex min-h-screen bg-slate-100">
       <Head title="Dashboard - Biblioteca PPD" />
 
-      {/* 1. Barra lateral institucional (Sidebar) */}
       <aside className="sidebar-institutional w-64 bg-[#0f2b48] text-white flex flex-col justify-between p-4 shadow-lg">
         <div>
           <div className="brand-logo flex items-center gap-3 mb-8 px-2 pt-2">
@@ -65,7 +76,6 @@ export default function Dashboard() {
               <i className="fa-solid fa-calendar-check w-5"></i> Reservas
             </Link>
 
-            {/* Módulos exclusivos para Administradores / Bibliotecarios */}
             {esAdminBibliotecario && (
               <>
                 <div className="pt-4 pb-1 px-3 text-xs uppercase tracking-wider text-slate-400 font-semibold">Administración</div>
@@ -89,7 +99,6 @@ export default function Dashboard() {
           </nav>
         </div>
 
-        {/* Botón de Cerrar Sesión (Método POST) */}
         <div className="pt-4 border-t border-slate-800">
           <form onSubmit={handleLogout}>
             <button 
@@ -102,12 +111,20 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      {/* 2. Contenedor principal */}
       <main className="main-content flex-1 flex flex-col min-w-0">
         <header className="header-institutional bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center shadow-sm">
           <div className="header-search flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-xl w-96 border border-slate-200">
             <i className="fa-solid fa-magnifying-glass text-slate-400"></i>
-            <input type="text" placeholder="Buscar recursos bibliográficos, ISBN..." className="bg-transparent border-none focus:outline-none text-sm w-full text-slate-700" />
+            <input 
+              type="text" 
+              placeholder={esAdminBibliotecario ? "Buscar en el sistema..." : "Buscar en la estantería virtual..."} 
+              value={busquedaDashboard}
+              onChange={(e) => {
+                setBusquedaDashboard(e.target.value);
+                setPaginaActual(1);
+              }}
+              className="bg-transparent border-none focus:outline-none text-sm w-full text-slate-700" 
+            />
           </div>
           <div className="header-user flex items-center gap-3">
             <div className="user-avatar w-10 h-10 rounded-full bg-blue-900 text-white flex items-center justify-center font-bold shadow-sm">
@@ -122,88 +139,151 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* 3. Cuerpo del Dashboard */}
         <div className="content-body p-8 flex-1">
-          <div className="card-institutional bg-white border border-slate-200 p-6 rounded-2xl shadow-sm mb-8">
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Panel de Control General</h2>
-            <p className="text-slate-600 text-sm">
-              Bienvenido al Sistema de Gestión Bibliotecaria PPD. Selecciona una sección para comenzar tus consultas o gestiones.
-            </p>
-          </div>
-
-          {/* Accesos rápidos e indicadores generales */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            <Link 
-              href={getRoute('recursos.index', '/recursos')} 
-              className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
-            >
-              <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
-                <i className="fa-solid fa-book"></i>
+          {esAdminBibliotecario ? (
+            <>
+              <div className="card-institutional bg-white border border-slate-200 p-6 rounded-2xl shadow-sm mb-8">
+                <h2 className="text-xl font-bold text-slate-800 mb-2">Panel de Control Administrativo</h2>
+                <p className="text-slate-600 text-sm">
+                  Bienvenido al sistema de gestión. Utiliza los accesos rápidos o el menú lateral para administrar inventarios, multas, suspensiones y parámetros.
+                </p>
               </div>
-              <h3 className="font-bold text-slate-800 text-base mb-1">Catálogo</h3>
-              <p className="text-xs text-slate-500">Búsqueda de libros, obras y taxonomía</p>
-            </Link>
 
-            <Link 
-              href={getRoute('prestamos.index', '/prestamos')} 
-              className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
-            >
-              <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
-                <i className="fa-solid fa-hand-holding"></i>
-              </div>
-              <h3 className="font-bold text-slate-800 text-base mb-1">Préstamos</h3>
-              <p className="text-xs text-slate-500">Consulta de tus préstamos activos</p>
-            </Link>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <Link href={getRoute('recursos.index', '/recursos')} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group">
+                  <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform"><i className="fa-solid fa-book"></i></div>
+                  <h3 className="font-bold text-slate-800 text-base mb-1">Catálogo</h3>
+                  <p className="text-xs text-slate-500">Gestión de acervo y libros</p>
+                </Link>
 
-            <Link 
-              href={getRoute('reservas.index', '/reservas')} 
-              className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
-            >
-              <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
-                <i className="fa-solid fa-calendar-check"></i>
-              </div>
-              <h3 className="font-bold text-slate-800 text-base mb-1">Reservas</h3>
-              <p className="text-xs text-slate-500">Gestión de colas de espera</p>
-            </Link>
+                <Link href={getRoute('prestamos.index', '/prestamos')} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group">
+                  <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform"><i className="fa-solid fa-hand-holding"></i></div>
+                  <h3 className="font-bold text-slate-800 text-base mb-1">Préstamos</h3>
+                  <p className="text-xs text-slate-500">Control de circulación</p>
+                </Link>
 
-            {/* Accesos rápidos exclusivos para Administradores / Bibliotecarios */}
-            {esAdminBibliotecario && (
-              <>
-                <Link 
-                  href={getRoute('multas.index', '/multas')} 
-                  className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
-                >
-                  <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
-                    <i className="fa-solid fa-receipt"></i>
-                  </div>
+                <Link href={getRoute('ubicaciones.index', '/ubicaciones')} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group">
+                  <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform"><i className="fa-solid fa-boxes-stacked"></i></div>
+                  <h3 className="font-bold text-slate-800 text-base mb-1">Ubicaciones</h3>
+                  <p className="text-xs text-slate-500">Estantes e inventario físico</p>
+                </Link>
+
+                <Link href={getRoute('multas.index', '/multas')} className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group">
+                  <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform"><i className="fa-solid fa-receipt"></i></div>
                   <h3 className="font-bold text-slate-800 text-base mb-1">Multas</h3>
-                  <p className="text-xs text-slate-500">Revisión de multas o sanciones</p>
+                  <p className="text-xs text-slate-500">Sanciones y pagos</p>
                 </Link>
-
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="card-institutional bg-white border border-slate-200 p-6 rounded-2xl shadow-sm mb-8 flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800 mb-1">Estantería Virtual de Libros y Tesis</h2>
+                  <p className="text-slate-600 text-sm">
+                    Explora el acervo virtual institucional disponible para consulta rápida y lectura.
+                  </p>
+                </div>
                 <Link 
-                  href={getRoute('suspensiones.index', '/suspensiones')} 
-                  className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
+                  href={getRoute('recursos.index', '/recursos')} 
+                  className="text-sm font-bold text-blue-600 hover:underline flex items-center gap-1 whitespace-nowrap"
                 >
-                  <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
-                    <i className="fa-solid fa-ban"></i>
-                  </div>
-                  <h3 className="font-bold text-slate-800 text-base mb-1">Suspensiones</h3>
-                  <p className="text-xs text-slate-500">Control de bloqueos temporales</p>
+                  Ir al Catálogo Completo <i className="fa-solid fa-arrow-right"></i>
                 </Link>
+              </div>
 
-                <Link 
-                  href={getRoute('usuarios.index', '/usuarios')} 
-                  className="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all block group"
-                >
-                  <div className="text-3xl mb-3 text-blue-600 group-hover:scale-110 transition-transform">
-                    <i className="fa-solid fa-users"></i>
+              {/* Estantería en cuadrícula de 5 columnas para estudiante/lector */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-5">
+                {recursosPaginados.map((rec: any) => (
+                  <div key={rec.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group">
+                    
+                    <div className="h-44 bg-slate-900 overflow-hidden relative flex items-center justify-center">
+                      {rec.portada_url ? (
+                        <img 
+                          src={`/storage/${rec.portada_url}`} 
+                          alt={rec.titulo} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform" 
+                        />
+                      ) : rec.es_digital && rec.archivo_url ? (
+                        <div className="w-full h-full relative overflow-hidden bg-slate-100">
+                          <div className="absolute inset-0 z-10 cursor-pointer" onClick={() => window.location.href = `/recursos/${rec.id}`}></div>
+                          <iframe 
+                            src={`/storage/${rec.archivo_url}#page=1&view=FitH&toolbar=0&navpanes=0&scrollbar=0`} 
+                            className="w-full h-full border-0 select-none pointer-events-none" 
+                            title="Preview PDF" 
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full h-full bg-[#0f2b48] p-4 flex flex-col justify-between text-white">
+                          <span className="text-[10px] font-mono text-slate-300">ISBN: {rec.isbn || 'N/A'}</span>
+                          <span className="font-bold text-xs line-clamp-3">{rec.titulo}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-3 flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start mb-1.5">
+                          <span className="bg-blue-100 text-blue-700 text-[10px] font-semibold px-2 py-0.5 rounded uppercase">
+                            {rec.tipo}
+                          </span>
+                          {rec.es_digital && (
+                            <span className="bg-emerald-100 text-emerald-700 text-[10px] font-semibold px-2 py-0.5 rounded">
+                              PDF
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-bold text-slate-800 text-xs mb-1 group-hover:text-blue-600 transition-colors line-clamp-2" title={rec.titulo}>
+                          {rec.titulo}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 flex justify-between items-center">
+                      <span className="text-[10px] text-slate-400 font-mono">Año: {rec.anio_publicacion || 'N/A'}</span>
+                      <Link 
+                        href={`/recursos/${rec.id}`} 
+                        className="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1"
+                      >
+                        Ver / Leer <i className="fa-solid fa-arrow-right"></i>
+                      </Link>
+                    </div>
                   </div>
-                  <h3 className="font-bold text-slate-800 text-base mb-1">Usuarios</h3>
-                  <p className="text-xs text-slate-500">Gestión de miembros y permisos</p>
-                </Link>
-              </>
-            )}
-          </div>
+                ))}
+
+                {recursosPaginados.length === 0 && (
+                  <div className="col-span-full py-12 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+                    <i className="fa-solid fa-book-open text-4xl mb-3 block"></i>
+                    No hay recursos disponibles en esta sección.
+                  </div>
+                )}
+              </div>
+
+              {totalPaginas > 1 && (
+                <div className="mt-8 flex justify-center items-center gap-3">
+                  <button
+                    onClick={() => setPaginaActual(p => Math.max(p - 1, 1))}
+                    disabled={paginaActual === 1}
+                    className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
+                  >
+                    <i className="fa-solid fa-chevron-left mr-1"></i> Anterior Grupo
+                  </button>
+
+                  <span className="text-xs font-medium text-slate-600 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+                    Grupo <strong className="text-slate-900">{paginaActual}</strong> de <strong className="text-slate-900">{totalPaginas}</strong>
+                  </span>
+
+                  <button
+                    onClick={() => setPaginaActual(p => Math.min(p + 1, totalPaginas))}
+                    disabled={paginaActual === totalPaginas}
+                    className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
+                  >
+                    Siguiente Grupo <i className="fa-solid fa-chevron-right ml-1"></i>
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </main>
     </div>

@@ -24,6 +24,10 @@ class RecursoBibliografico extends Model implements HasMedia
         'sinopsis',
         'tipo',
         'editorial_id',
+        'es_digital',       // <--- Añadido
+        'archivo_url',      // <--- Añadido
+        'permite_descarga',
+        'portada_url', // <--- Añadido
     ];
 
     public function editorial()
@@ -34,21 +38,21 @@ class RecursoBibliografico extends Model implements HasMedia
     public function autores()
     {
         return $this->belongsToMany(Autor::class, 'recurso_autor', 'recurso_bibliografico_id', 'autor_id')
-                    ->withPivot('orden')
-                    ->withTimestamps();
+                    ->withPivot('orden'); // Sin withTimestamps porque la tabla no los tiene
     }
 
     public function categorias()
     {
-        return $this->belongsToMany(Categoria::class, 'recurso_categoria', 'recurso_bibliografico_id', 'categoria_id')
-                    ->withTimestamps();
+        return $this->belongsToMany(Categoria::class, 'recurso_categoria', 'recurso_bibliografico_id', 'categoria_id');
+        // Quitamos withTimestamps() ya que recurso_categoria no tiene esas columnas
     }
 
     public function ejemplares()
     {
         return $this->hasMany(Ejemplar::class, 'recurso_bibliografico_id');
     }
-        public function reservas()
+
+    public function reservas()
     {
         return $this->hasMany(Reserva::class, 'recurso_bibliografico_id');
     }
