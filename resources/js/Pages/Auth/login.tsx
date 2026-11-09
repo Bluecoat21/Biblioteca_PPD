@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, Link } from '@inertiajs/react';
 
 export default function Login() {
     const { data, setData, post, processing, errors } = useForm({
@@ -14,41 +14,59 @@ export default function Login() {
     };
 
     return (
-        <div style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem', fontFamily: 'sans-serif' }}>
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
             <Head title="Iniciar Sesión - Biblioteca PPD" />
-            <h2 style={{ textAlign: 'center', color: '#1e3a8a' }}>Iniciar Sesión</h2>
             
-            <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Correo Electrónico:</label>
-                    <input 
-                        type="email" 
-                        value={data.email} 
-                        onChange={e => setData('email', e.target.value)}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                    />
-                    {errors.email && <span style={{ color: 'red', fontSize: '0.85rem' }}>{errors.email}</span>}
+            <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl">
+                <div className="mb-6 text-center">
+                    <h2 className="text-2xl font-bold text-white">Iniciar Sesión</h2>
+                    <p className="text-xs text-slate-400 mt-1">Accede al sistema integral de la biblioteca</p>
                 </div>
+                
+                <form onSubmit={submit} className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Correo Electrónico:</label>
+                        <input 
+                            type="email" 
+                            value={data.email} 
+                            onChange={e => setData('email', e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500"
+                            required
+                        />
+                        {errors.email && <span className="text-xs text-red-400 mt-1 block">{errors.email}</span>}
+                    </div>
 
-                <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>Contraseña:</label>
-                    <input 
-                        type="password" 
-                        value={data.password} 
-                        onChange={e => setData('password', e.target.value)}
-                        style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
-                    />
-                    {errors.password && <span style={{ color: 'red', fontSize: '0.85rem' }}>{errors.password}</span>}
-                </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase">Contraseña:</label>
+                        <input 
+                            type="password" 
+                            value={data.password} 
+                            onChange={e => setData('password', e.target.value)}
+                            className="w-full bg-slate-950 border border-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500"
+                            required
+                        />
+                        {errors.password && <span className="text-xs text-red-400 mt-1 block">{errors.password}</span>}
+                    </div>
 
-                <button 
-                    type="submit" 
-                    disabled={processing}
-                    style={{ background: '#2563eb', color: 'white', padding: '0.75rem', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', marginTop: '1rem' }}
-                >
-                    Ingresar
-                </button>
-            </form>
+                    {/* ENLACES DE RECUPERACIÓN Y REGISTRO */}
+                    <div className="flex justify-between items-center text-xs pt-1">
+                        <Link href="/forgot-password" className="text-blue-400 hover:underline">
+                            ¿Olvidaste tu contraseña?
+                        </Link>
+                        <Link href="/register" className="text-slate-400 hover:text-white transition-colors">
+                            Crear cuenta web
+                        </Link>
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        disabled={processing}
+                        className="w-full bg-[#0f2b48] hover:bg-[#1a426e] text-white font-semibold py-3.5 px-4 rounded-xl text-sm transition-all shadow-lg mt-2"
+                    >
+                        Ingresar
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }

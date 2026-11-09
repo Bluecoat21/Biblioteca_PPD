@@ -56,6 +56,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Administrador',
                 'password' => Hash::make('123'),
                 'documento_identidad' => '00000000',
+                'codigo_estudiante' => 'ADMIN-001', // <-- Código único requerido
                 'tipo_usuario_id' => $tipoAdmin->id,
                 'estado' => 'activo',
                 'email_verified_at' => now(),
@@ -78,6 +79,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Test User',
                 'password' => Hash::make('password'),
                 'documento_identidad' => '87654321',
+                'codigo_estudiante' => '202600123', // <-- Código único requerido para estudiantes
                 'tipo_usuario_id' => $tipoEstudiante->id,
                 'estado' => 'activo',
                 'email_verified_at' => now(),
@@ -101,7 +103,6 @@ class DatabaseSeeder extends Seeder
             'es_digital' => false,
             'sinopsis' => 'Texto fundamental para el diseño y análisis de algoritmos.'
         ]);
-        // Usamos sync especificando el orden sin afectar timestamps inexistentes en pivote
         $libroFisico->autores()->sync([$autor1->id => ['orden' => 1]]);
 
         // Tesis o Libro Digital en PDF

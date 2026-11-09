@@ -14,7 +14,8 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->datetime('fecha_reserva');
             $table->datetime('fecha_expiracion');
-            $table->enum('estado', ['pendiente', 'completada', 'cancelada', 'expirada'])->default('pendiente');
+            // Añadimos 'en_camino' dentro de las opciones permitidas del ENUM
+            $table->enum('estado', ['pendiente', 'en_camino', 'completada', 'cancelada', 'expirada'])->default('pendiente');
             $table->integer('posicion_cola')->default(1);
             $table->timestamps();
         });

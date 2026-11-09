@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link, usePage, router } from '@inertiajs/react';
+import VirtualAssistantWidget from '../Components/VirtualAssistantWidget';
 
 export default function Dashboard() {
   const { auth, recursosRecientes = [] } = usePage().props as any;
@@ -76,12 +77,14 @@ export default function Dashboard() {
               <i className="fa-solid fa-calendar-check w-5"></i> Reservas
             </Link>
 
+            {/* Apartado de Multas visible para Todos (Estudiantes ven sus multas, Admin gestiona) */}
+            <Link href={getRoute('multas.index', '/multas')} className="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">
+              <i className="fa-solid fa-receipt w-5"></i> Multas y Sanciones
+            </Link>
+
             {esAdminBibliotecario && (
               <>
                 <div className="pt-4 pb-1 px-3 text-xs uppercase tracking-wider text-slate-400 font-semibold">Administración</div>
-                <Link href={getRoute('multas.index', '/multas')} className="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">
-                  <i className="fa-solid fa-receipt w-5"></i> Multas y Sanciones
-                </Link>
                 <Link href={getRoute('suspensiones.index', '/suspensiones')} className="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800 text-slate-300 transition-colors">
                   <i className="fa-solid fa-ban w-5"></i> Suspensiones
                 </Link>
@@ -192,7 +195,7 @@ export default function Dashboard() {
                 </Link>
               </div>
 
-              {/* Estantería en cuadrícula de 5 columnas para estudiante/lector */}
+              {/* Estantería en cuadrícula para estudiante/lector */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-5">
                 {recursosPaginados.map((rec: any) => (
                   <div key={rec.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group">
@@ -286,6 +289,7 @@ export default function Dashboard() {
           )}
         </div>
       </main>
+      <VirtualAssistantWidget />
     </div>
   );
 }

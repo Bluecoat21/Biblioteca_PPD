@@ -6,6 +6,7 @@ use App\Models\RecursoBibliografico;
 use App\Models\Editorial;
 use App\Models\Autor;
 use App\Models\Categoria;
+use App\Models\Ubicacion;
 use App\Http\Requests\StoreRecursoRequest;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,30 +16,29 @@ use Illuminate\Support\Facades\Storage;
 class RecursoBibliograficoController extends Controller
 {
     public function index(Request $request)
-        {
-            $query = RecursoBibliografico::with(['editorial', 'autores', 'categorias', 'ejemplares']);
+    {
+        $query = RecursoBibliografico::with(['editorial', 'autores', 'categorias', 'ejemplares']);
 
-            if ($request->has('search')) {
-                $search = $request->input('search');
-                $query->where('titulo', 'like', "%{$search}%")
-                    ->orWhere('isbn', 'like', "%{$search}%");
-            }
-
-            $recursos = $query->paginate(10)->withQueryString();
-
-            // Calculamos si es admin directamente en el backend
-            $esAdmin = false;
-            if (auth()->check()) {
-                $esAdmin = auth()->user()->hasRole(['Administrador', 'Bibliotecario'])
-                        || auth()->user()->email === '12345@1.test';
-            }
-
-            return Inertia::render('Catalogos/Index', [
-                'recursos' => $recursos,
-                'esAdmin' => $esAdmin, // <--- Enviamos esto a React
-                'filters' => $request->only(['search'])
-            ]);
+        if ($request->has('search')) {
+            $search = $request->input('search');
+            $query->where('titulo', 'like', "%{$search}%")
+                ->orWhere('isbn', 'like', "%{$search}%");
         }
+
+        $recursos = $query->paginate(10)->withQueryString();
+
+        $esAdmin = false;
+        if (auth()->check()) {
+            $esAdmin = auth()->user()->hasRole(['Administrador', 'Bibliotecario'])
+                    || auth()->user()->email === '12345@1.test';
+        }
+
+        return Inertia::render('Catalogos/Index', [
+            'recursos' => $recursos,
+            'esAdmin' => $esAdmin,
+            'filters' => $request->only(['search'])
+        ]);
+    }
 
     public function create()
     {
@@ -62,13 +62,11 @@ class RecursoBibliograficoController extends Controller
         DB::transaction(function () use ($request) {
             $data = $request->validated();
 
-            // 1. Generación de ISBN automático
             if (empty($data['isbn'])) {
                 $prefijo = strtoupper(substr($data['tipo'] ?? 'REC', 0, 3));
                 $data['isbn'] = "PPD-{$prefijo}-" . date('Y') . '-' . rand(1000, 9999);
             }
 
-            // 2. Editorial
             if ($request->editorial_id === 'otro' && $request->filled('nueva_editorial')) {
                 $nuevaEd = Editorial::firstOrCreate(
                     ['nombre' => trim($request->nueva_editorial)],
@@ -77,20 +75,17 @@ class RecursoBibliograficoController extends Controller
                 $data['editorial_id'] = $nuevaEd->id;
             }
 
-            // 3. Archivo PDF
             if ($request->hasFile('archivo_pdf')) {
                 $data['archivo_url'] = $request->file('archivo_pdf')->store('recursos_digitales', 'public');
                 $data['es_digital'] = true;
             }
 
-            // 4. Portada
             if ($request->hasFile('portada_imagen')) {
                 $data['portada_url'] = $request->file('portada_imagen')->store('portadas_recursos', 'public');
             }
 
             $recurso = RecursoBibliografico::create($data);
 
-            // 5. Autores
             $autoresIds = [];
             if ($request->autor_id && $request->autor_id !== 'otro') {
                 $autoresIds[] = $request->autor_id;
@@ -105,10 +100,8 @@ class RecursoBibliograficoController extends Controller
                 $recurso->autores()->sync([$autoresIds[0] => ['orden' => 1]]);
             }
 
-            // 6. Categorías Múltiples
             $categoriasIds = is_array($request->categorias) ? $request->categorias : [];
             
-            // Si escribió una nueva categoría, la creamos y la añadimos
             if ($request->filled('nueva_categoria')) {
                 $nuevaCat = Categoria::firstOrCreate(['nombre' => trim($request->nueva_categoria)]);
                 $categoriasIds[] = $nuevaCat->id;
@@ -124,17 +117,53 @@ class RecursoBibliograficoController extends Controller
 
     public function show(RecursoBibliografico $recurso)
     {
-        $recurso->load(['editorial', 'autores', 'categorias', 'ejemplares']);
+        $recurso->load(['editorial', 'autores', 'categorias', 'ejemplares.ubicacion']);
 
+        $totalEjemplares = $recurso->ejemplares->count();
+        $ejemplaresDisponiblesCount = $recurso->ejemplares->where('estado', 'disponible')->count();
+
+        $user = auth()->user();
         $esAdmin = false;
-        if (auth()->check()) {
-            $esAdmin = auth()->user()->hasRole(['Administrador', 'Bibliotecario'])
-                       || auth()->user()->email === '12345@1.test';
+        $usuarioTienePrestamo = false;
+        $usuarioTieneReserva = false;
+
+        if ($user) {
+            $esAdmin = $user->hasRole(['Administrador', 'Bibliotecario'])
+                       || $user->email === '12345@1.test';
+
+            // Verificar si el usuario actual ya posee un préstamo activo de este recurso
+            $usuarioTienePrestamo = \App\Models\Prestamo::where('user_id', $user->id)
+                ->whereIn('estado', ['activo', 'atrasado'])
+                ->whereHas('ejemplar', function ($q) use ($recurso) {
+                    $q->where('recurso_bibliografico_id', $recurso->id);
+                })
+                ->exists();
+
+            // Verificar si el usuario actual ya tiene una reserva activa en cola
+            $usuarioTieneReserva = \App\Models\Reserva::where('user_id', $user->id)
+                ->where('recurso_bibliografico_id', $recurso->id)
+                ->whereIn('estado', ['pendiente', 'en_camino'])
+                ->exists();
         }
+
+        $ubicaciones = \App\Models\Ubicacion::where('activa', true)->get();
 
         return Inertia::render('Catalogos/Show', [
             'recurso' => $recurso,
-            'esAdmin' => $esAdmin
+            'totalEjemplares' => $totalEjemplares,
+            'ejemplaresDisponiblesCount' => $ejemplaresDisponiblesCount,
+            'esAdmin' => $esAdmin,
+            'usuarioTienePrestamo' => $usuarioTienePrestamo,
+            'usuarioTieneReserva' => $usuarioTieneReserva,
+            'ubicaciones' => $ubicaciones,
+            'auth' => [
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'roles' => $user->getRoleNames(),
+                ] : null,
+            ]
         ]);
     }
 

@@ -10,7 +10,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->string('documento_identidad')->unique()->after('email');
-            $table->foreignId('tipo_usuario_id')->after('documento_identidad')->constrained('tipos_usuario');
+            $table->string('codigo_estudiante')->unique()->after('documento_identidad'); // <-- NUEVO CAMPO AÑADIDO
+            $table->foreignId('tipo_usuario_id')->after('codigo_estudiante')->constrained('tipos_usuario');
             $table->string('telefono')->nullable()->after('tipo_usuario_id');
             $table->enum('estado', ['activo', 'suspendido', 'inactivo'])->default('activo')->after('telefono');
             $table->date('fecha_suspension_hasta')->nullable()->after('estado');
@@ -23,7 +24,8 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table) {
             $table->dropForeign(['tipo_usuario_id']);
             $table->dropUnique(['documento_identidad']);
-            $table->dropColumn(['documento_identidad', 'tipo_usuario_id', 'telefono', 'estado', 'fecha_suspension_hasta']);
+            $table->dropUnique(['codigo_estudiante']); // <-- ELIMINAR UNIQUE EN ROLLBACK
+            $table->dropColumn(['documento_identidad', 'codigo_estudiante', 'tipo_usuario_id', 'telefono', 'estado', 'fecha_suspension_hasta']);
             $table->dropSoftDeletes();
         });
     }

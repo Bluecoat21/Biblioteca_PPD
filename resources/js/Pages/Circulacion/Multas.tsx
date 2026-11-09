@@ -1,30 +1,22 @@
 import React from 'react';
 import { Head, Link, usePage, router } from '@inertiajs/react';
+import VirtualAssistantWidget from '../../Components/VirtualAssistantWidget';
 
 export default function MultasIndex() {
-  const { multas, auth } = usePage().props as any;
+  const { multas, auth, esAdmin } = usePage().props as any;
 
-  // Verificación de roles
+  // Verificación robusta de rol de administrador o bibliotecario
   const roles = auth?.user?.roles || [];
   const hasRole = roles.some((r: any) => {
     const roleName = typeof r === 'string' ? r : r?.name;
     return roleName && ['admin', 'administrator', 'bibliotecario', 'administrador'].includes(roleName.toLowerCase());
   });
-  const esAdminBibliotecario = hasRole || auth?.user?.email === '12345@1.test';
+  
+  const esAdminBibliotecario = esAdmin !== undefined ? esAdmin : (hasRole || auth?.user?.email === '12345@1.test');
 
-  const getRoute = (routeName: string, fallbackUrl: string) => {
-    try {
-      if (typeof window !== 'undefined' && (window as any).route) {
-        return (window as any).route(routeName);
-      }
-    } catch (e) {}
-    return fallbackUrl;
-  };
-
-  // Función para marcar una multa como pagada (exclusivo admin/bibliotecario)
   const handlePagar = (multaId: number) => {
     if (confirm('¿Confirmas el pago y liquidación de esta multa?')) {
-      router.post(getRoute('multas.pagar', `/multas/${multaId}/pagar`), {}, {
+      router.post(`/multas/${multaId}/pagar`, {}, {
         preserveScroll: true,
       });
     }
@@ -32,29 +24,30 @@ export default function MultasIndex() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <Head title="Gestión de Multas y Sanciones" />
+      <Head title="Gestión de Multas y Sanciones - Biblioteca PPD" />
 
       <main className="flex-1 p-8">
         <div className="max-w-7xl mx-auto">
-          {/* Encabezado */}
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-800">
                 {esAdminBibliotecario ? 'Gestión General de Multas' : 'Mis Multas y Sanciones'}
               </h1>
-              <p className="text-sm text-slate-600">Control de sanciones económicas por retraso en entregas.</p>
+              <p className="text-sm text-slate-600">
+                {esAdminBibliotecario ? 'Control administrativo de sanciones económicas y cobros.' : 'Control de tus sanciones económicas por retraso en entregas.'}
+              </p>
             </div>
             <div className="flex gap-3">
               {esAdminBibliotecario && (
                 <Link
-                  href={getRoute('multas.create', '/multas/create')}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                  href="/multas/create"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
                 >
-                  + Registrar Multa
+                  <span>+ Registrar Multa</span>
                 </Link>
               )}
               <Link
-                href={getRoute('dashboard', '/dashboard')}
+                href="/dashboard"
                 className="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-700 transition-colors"
               >
                 Volver al Dashboard
@@ -62,13 +55,12 @@ export default function MultasIndex() {
             </div>
           </div>
 
-          {/* Tabla de Multas */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[#0f2b48] text-white text-sm">
                   <th className="p-4">ID</th>
-                  <th className="p-4">Usuario</th>
+                  {esAdminBibliotecario && <th className="p-4">Usuario Infractor</th>}
                   <th className="p-4">Motivo</th>
                   <th className="p-4">Monto</th>
                   <th className="p-4">Días Atraso</th>
@@ -81,8 +73,13 @@ export default function MultasIndex() {
                   multas.data.map((multa: any) => (
                     <tr key={multa.id} className="hover:bg-slate-50 transition-colors">
                       <td className="p-4 font-semibold text-slate-700">#{multa.id}</td>
-                      <td className="p-4 text-slate-800">{multa.user?.name || 'Usuario desconocido'}</td>
-                      <td className="p-4 text-slate-600">{multa.motivo}</td>
+                      {esAdminBibliotecario && (
+                        <td className="p-4 text-slate-800 font-medium">
+                          {multa.user?.name || 'Usuario desconocido'}
+                          <div className="text-xs text-slate-400 font-mono">DNI: {multa.user?.documento_identidad || 'N/A'}</div>
+                        </td>
+                      )}
+                      <td className="p-4 text-slate-600 capitalize">{multa.motivo}</td>
                       <td className="p-4 font-bold text-red-600">S/. {multa.monto}</td>
                       <td className="p-4 text-slate-600">{multa.dias_atraso || 0} días</td>
                       <td className="p-4">
@@ -91,14 +88,14 @@ export default function MultasIndex() {
                             ? 'bg-amber-100 text-amber-800' 
                             : 'bg-emerald-100 text-emerald-800'
                         }`}>
-                          {multa.estado}
+                          {multa.estado.toUpperCase()}
                         </span>
                       </td>
                       <td className="p-4 text-center">
                         {multa.estado === 'pendiente' && esAdminBibliotecario ? (
                           <button
                             onClick={() => handlePagar(multa.id)}
-                            className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                            className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-sm"
                           >
                             Marcar Pagada
                           </button>
@@ -110,8 +107,15 @@ export default function MultasIndex() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-500">
-                      No hay multas registradas en el sistema.
+                    <td colSpan={esAdminBibliotecario ? 7 : 6} className="p-12 text-center text-slate-500">
+                      <div className="max-w-sm mx-auto space-y-2">
+                        <p className="text-base font-semibold text-emerald-700">¡Sin multas pendientes!</p>
+                        <p className="text-xs text-slate-500">
+                          {esAdminBibliotecario 
+                            ? 'No se registran multas o sanciones activas en la base de datos.' 
+                            : 'No tienes sanciones económicas registradas. Mantienes un historial limpio.'}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -120,6 +124,7 @@ export default function MultasIndex() {
           </div>
         </div>
       </main>
+      <VirtualAssistantWidget hideForAdmin={esAdminBibliotecario} />
     </div>
   );
 }

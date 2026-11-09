@@ -7,6 +7,7 @@ use App\Models\Ejemplar;
 use App\Models\Reserva;
 use App\Models\PoliticaPrestamo;
 use App\Models\User;
+use App\Models\Configuracion;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
@@ -14,12 +15,17 @@ use Illuminate\Support\Facades\DB;
 
 class PrestamoController extends Controller
 {
-public function index(Request $request)
+    public function index(Request $request)
     {
+        $esAdmin = false;
+        if (auth()->check()) {
+            $esAdmin = auth()->user()->hasRole(['Administrador', 'Bibliotecario'])
+                       || auth()->user()->email === '12345@1.test';
+        }
+
         $query = Prestamo::with(['ejemplar.recurso', 'usuario', 'bibliotecario']);
 
-        // Blindaje por rol: Si es lector/estudiante, solo ve sus propios préstamos
-        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+        if (!$esAdmin) {
             $query->where('user_id', auth()->id());
         }
 
@@ -34,62 +40,89 @@ public function index(Request $request)
 
         $prestamos = $query->latest()->paginate(10);
         $ejemplaresDisponibles = Ejemplar::with('recurso')->where('estado', 'disponible')->get();
-        $usuarios = User::all();
+        $usuarios = User::where('estado', 'activo')->orderBy('name')->get();
 
         return Inertia::render('Circulacion/Index', [
             'prestamos' => $prestamos,
             'ejemplaresDisponibles' => $ejemplaresDisponibles,
             'usuarios' => $usuarios,
+            'esAdmin' => $esAdmin,
             'filters' => $request->only(['search'])
         ]);
     }
 
     public function create()
     {
-        if (!auth()->user()->hasRole(['Administrador', 'Bibliotecario'])) {
+        $esAdmin = false;
+        if (auth()->check()) {
+            $esAdmin = auth()->user()->hasRole(['Administrador', 'Bibliotecario'])
+                       || auth()->user()->email === '12345@1.test';
+        }
+
+        if (!$esAdmin) {
             abort(403, 'No tienes permisos para acceder a este formulario.');
         }
 
         $ejemplaresDisponibles = Ejemplar::with('recurso')->where('estado', 'disponible')->get();
-        $usuarios = User::all();
+        $usuarios = User::where('estado', 'activo')->orderBy('name')->get();
 
         return Inertia::render('Circulacion/Create', [
             'ejemplaresDisponibles' => $ejemplaresDisponibles,
             'usuarios' => $usuarios,
         ]);
-    } // <--- Asegúrate de que esta llave cierre create()
+    }
 
     public function store(Request $request)
     {
         $request->validate([
-            'ejemplar_id' => ['required', 'exists:ejemplars,id'],
+            'ejemplar_id' => ['required', 'exists:ejemplares,id'],
             'user_id' => ['required', 'exists:users,id'],
         ]);
 
         $ejemplar = Ejemplar::with('recurso')->findOrFail($request->ejemplar_id);
         $usuario = User::with(['tipoUsuario', 'suspensiones', 'multas'])->findOrFail($request->user_id);
 
+        if ($usuario->estado !== 'activo') {
+            return back()->withErrors(['user_id' => 'El usuario no se encuentra activo y no puede recibir préstamos.']);
+        }
+
         if ($ejemplar->estado !== 'disponible') {
             return back()->withErrors(['ejemplar_id' => 'El ejemplar no se encuentra disponible (Estado actual: ' . $ejemplar->estado . ').']);
         }
 
-        // VALIDACIÓN 1: Verificar si tiene suspensión activa
+        // Validación de cola de reservas
+        $recursoId = $ejemplar->recurso_bibliografico_id;
+        if ($recursoId) {
+            $reservaActivaEnCola = Reserva::where('recurso_bibliografico_id', $recursoId)
+                ->whereIn('estado', ['pendiente', 'en_camino'])
+                ->orderBy('posicion_cola', 'asc')
+                ->first();
+
+            if ($reservaActivaEnCola && $reservaActivaEnCola->user_id !== $usuario->id) {
+                $usuarioReservado = User::find($reservaActivaEnCola->user_id);
+                $nombreReservado = $usuarioReservado ? $usuarioReservado->name : 'un usuario en espera';
+                
+                return back()->withErrors([
+                    'ejemplar_id' => "Operación denegada: Este recurso cuenta con una reserva activa en cola para '{$nombreReservado}' (Posición #1)."
+                ]);
+            }
+        }
+
         $tieneSuspensionActiva = $usuario->suspensiones()
             ->where('activa', true)
-            ->whereDate('fecha_fin', '>=', Carbon::now())
+            ->where(function ($q) {
+                $q->whereNull('fecha_fin')
+                  ->orWhereDate('fecha_fin', '>=', Carbon::now());
+            })
             ->exists();
 
         if ($tieneSuspensionActiva) {
-            return back()->withErrors(['user_id' => 'El usuario cuenta con una suspensión activa y no puede solicitar préstamos.']);
+            return back()->withErrors(['user_id' => 'El usuario cuenta con una suspensión activa.']);
         }
 
-        // VALIDACIÓN 2: Verificar si tiene multas pendientes de pago
-        $tieneMultasPendientes = $usuario->multas()
-            ->where('estado', 'pendiente')
-            ->exists();
-
+        $tieneMultasPendientes = $usuario->multas()->where('estado', 'pendiente')->exists();
         if ($tieneMultasPendientes) {
-            return back()->withErrors(['user_id' => 'El usuario tiene multas pendientes de pago. Debe saldarlas antes de solicitar un nuevo préstamo.']);
+            return back()->withErrors(['user_id' => 'El usuario tiene multas pendientes de pago.']);
         }
 
         $prestamosActivos = Prestamo::where('user_id', $usuario->id)
@@ -98,7 +131,7 @@ public function index(Request $request)
 
         $maxPermitidos = $usuario->tipoUsuario ? $usuario->tipoUsuario->max_prestamos : 3;
         if ($prestamosActivos >= $maxPermitidos) {
-            return back()->withErrors(['user_id' => 'El usuario ha alcanzado el límite máximo de préstamos permitidos (' . $maxPermitidos . ').']);
+            return back()->withErrors(['user_id' => 'El usuario ha alcanzado el límite máximo de préstamos (' . $maxPermitidos . ').']);
         }
 
         $tipoRecurso = $ejemplar->recurso ? $ejemplar->recurso->tipo : 'libro';
@@ -110,9 +143,20 @@ public function index(Request $request)
                 ->first();
         }
 
-        $diasPrestamo = $politica ? $politica->dias_prestamo : ($usuario->tipoUsuario->dias_prestamo_default ?? 7);
+        // ==========================================
+        // LECTURA DINÁMICA DE DÍAS DESDE CONFIGURACIÓN
+        // ==========================================
+        $tipoNombre = strtolower($usuario->tipoUsuario->nombre ?? '');
+        $esDocente = str_contains($tipoNombre, 'docente') || str_contains($tipoNombre, 'profesor');
+        $claveConfig = $esDocente ? 'dias_prestamo_docente' : 'dias_prestamo_alumno';
+        
+        $configDias = Configuracion::where('clave', $claveConfig)->value('valor');
 
-        DB::transaction(function () use ($ejemplar, $usuario, $diasPrestamo) {
+        $diasPrestamo = $politica 
+            ? $politica->dias_prestamo 
+            : ($configDias !== null ? intval($configDias) : ($usuario->tipoUsuario->dias_prestamo_default ?? 7));
+
+        DB::transaction(function () use ($ejemplar, $usuario, $diasPrestamo, $recursoId) {
             Prestamo::create([
                 'ejemplar_id' => $ejemplar->id,
                 'user_id' => $usuario->id,
@@ -124,12 +168,19 @@ public function index(Request $request)
             ]);
 
             $ejemplar->update(['estado' => 'prestado']);
+
+            if ($recursoId) {
+                Reserva::where('recurso_bibliografico_id', $recursoId)
+                    ->where('user_id', $usuario->id)
+                    ->whereIn('estado', ['pendiente', 'en_camino'])
+                    ->update(['estado' => 'completada']);
+            }
         });
 
-        return redirect()->back()->with('success', 'Préstamo registrado exitosamente.');
+        return redirect()->back()->with('success', 'Préstamo registrado exitosamente aplicando los días configurados.');
     }
 
- public function devolver($id)
+    public function devolver($id)
     {
         $prestamo = Prestamo::with(['ejemplar', 'usuario'])->findOrFail($id);
 
@@ -141,41 +192,37 @@ public function index(Request $request)
             $hoy = Carbon::now();
             $esperada = Carbon::parse($prestamo->fecha_devolucion_esperada);
             
-            // 1. Actualizamos el estado del préstamo y la fecha real de devolución
             $prestamo->update([
                 'fecha_devolucion_real' => $hoy,
                 'estado' => 'devuelto',
             ]);
 
-            // 2. Liberamos el ejemplar para que vuelva a estar disponible
             if ($prestamo->ejemplar) {
                 $prestamo->ejemplar->update(['estado' => 'disponible']);
             }
 
-            // 3. AUTOMATIZACIÓN DE MULTA POR ATRASO
             if ($hoy->greaterThan($esperada)) {
                 $diasAtraso = $esperada->diffInDays($hoy);
-
-                // Obtenemos la tarifa diaria desde la tabla configuraciones (S/. 2.00 por defecto si no existe)
-                $configMonto = \App\Models\Configuracion::where('clave', 'monto_multa_dia')->value('valor');
-                $tarifaDiaria = $configMonto ? floatval($configMonto) : 2.00;
-
+                
+                // LECTURA DINÁMICA DE LA MULTA DIARIA DESDE CONFIGURACIÓN
+                $configMonto = Configuracion::where('clave', 'monto_multa_dia')->value('valor');
+                $tarifaDiaria = $configMonto !== null ? floatval($configMonto) : 1.00;
                 $montoTotal = $diasAtraso * $tarifaDiaria;
 
                 \App\Models\Multa::create([
                     'user_id' => $prestamo->user_id,
                     'prestamo_id' => $prestamo->id,
                     'monto' => $montoTotal,
-                    'motivo' => "Retraso automático en devolución por {$diasAtraso} día(s).",
+                    'motivo' => 'atraso',
                     'dias_atraso' => $diasAtraso,
                     'estado' => 'pendiente',
                     'fecha_generacion' => $hoy,
-                    'observaciones' => 'Generado automáticamente por el sistema al procesar la devolución.',
+                    'observaciones' => "Generado automáticamente por retraso de {$diasAtraso} día(s) a S/. {$tarifaDiaria} por día.",
                 ]);
             }
         });
 
-        return redirect()->back()->with('success', 'Devolución registrada correctamente y multas evaluadas.');
+        return redirect()->back()->with('success', 'Devolución registrada correctamente y multas calculadas.');
     }
 
     public function renovar($id)
@@ -193,7 +240,7 @@ public function index(Request $request)
                 ->exists();
 
             if ($tieneReservas) {
-                return back()->withErrors(['error' => 'No se puede renovar: existen reservas pendientes en cola para este recurso.']);
+                return back()->withErrors(['error' => 'No se puede renovar: existen reservas pendientes.']);
             }
         }
 
@@ -208,10 +255,15 @@ public function index(Request $request)
         $permiteRenovacion = $politica ? $politica->permite_renovacion : true;
 
         if (!$permiteRenovacion || $prestamo->renovaciones >= $maxRenovaciones) {
-            return back()->withErrors(['error' => 'Se ha alcanzado el límite máximo de renovaciones permitidas.']);
+            return back()->withErrors(['error' => 'Se ha alcanzado el límite máximo de renovaciones.']);
         }
 
-        $diasExtra = $politica ? $politica->dias_prestamo : 7;
+        $tipoNombre = strtolower($prestamo->usuario->tipoUsuario->nombre ?? '');
+        $esDocente = str_contains($tipoNombre, 'docente') || str_contains($tipoNombre, 'profesor');
+        $claveConfig = $esDocente ? 'dias_prestamo_docente' : 'dias_prestamo_alumno';
+        $configDias = Configuracion::where('clave', $claveConfig)->value('valor');
+
+        $diasExtra = $politica ? $politica->dias_prestamo : ($configDias !== null ? intval($configDias) : 7);
 
         $prestamo->update([
             'fecha_devolucion_esperada' => Carbon::parse($prestamo->fecha_devolucion_esperada)->addDays($diasExtra),

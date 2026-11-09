@@ -46,7 +46,7 @@ class SuspensionController extends Controller
     }
 
     /**
-     * Almacenar una nueva suspensión en la base de datos.
+     * Almacenar una nueva suspensión en la base de datos e inhabilitar al usuario.
      */
     public function store(Request $request)
     {
@@ -57,20 +57,27 @@ class SuspensionController extends Controller
             'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
         ]);
 
-        Suspension::create([
+        // Crear la suspensión
+        $suspension = Suspension::create([
             'user_id' => $request->user_id,
             'motivo' => $request->motivo,
             'fecha_inicio' => $request->fecha_inicio,
             'fecha_fin' => $request->fecha_fin,
             'activa' => true,
-            'created_by' => auth()->id(), // Registra al admin o bibliotecario logueado
+            'created_by' => auth()->id(),
         ]);
 
-        return redirect()->route('suspensiones.index')->with('success', 'Suspensión aplicada con éxito.');
+        // CAMBIO CLAVE: Inhabilitar físicamente al usuario cambiando su estado a 'suspendido'
+        $usuario = User::find($request->user_id);
+        if ($usuario) {
+            $usuario->update(['estado' => 'suspendido']);
+        }
+
+        return redirect()->route('suspensiones.index')->with('success', 'Suspensión aplicada y usuario inhabilitado con éxito.');
     }
 
     /**
-     * Levantar / desactivar una suspensión activa.
+     * Levantar / desactivar una suspensión activa y reactivar al usuario.
      */
     public function levantar($id)
     {
@@ -80,6 +87,19 @@ class SuspensionController extends Controller
             'activa' => false
         ]);
 
-        return back()->with('success', 'Suspensión levantada correctamente.');
+        // Verificar si el usuario tiene otras suspensiones activas antes de reactivarlo
+        $tieneOtrasActivas = Suspension::where('user_id', $suspension->user_id)
+            ->where('activa', true)
+            ->exists();
+
+        // Si ya no tiene más suspensiones activas, devolvemos su estado físico a 'activo'
+        if (!$tieneOtrasActivas) {
+            $usuario = User::find($suspension->user_id);
+            if ($usuario) {
+                $usuario->update(['estado' => 'activo']);
+            }
+        }
+
+        return back()->with('success', 'Suspensión levantada y privilegios del usuario restaurados correctamente.');
     }
 }

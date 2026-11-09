@@ -1,41 +1,25 @@
 import React from 'react';
 import { Head, Link, usePage, router } from '@inertiajs/react';
+import VirtualAssistantWidget from '../../Components/VirtualAssistantWidget';
 
 export default function PrestamosIndex() {
-  const { prestamos, auth, errors } = usePage().props as any;
+  const { prestamos, esAdmin } = usePage().props as any;
+  const listaPrestamos = prestamos?.data || [];
 
-  // Verificación de roles para determinar si es admin/bibliotecario
-  const roles = auth?.user?.roles || [];
-  const hasRole = roles.some((r: any) => {
-    const roleName = typeof r === 'string' ? r : r?.name;
-    return roleName && ['admin', 'administrator', 'bibliotecario', 'administrador'].includes(roleName.toLowerCase());
-  });
-  const esAdminBibliotecario = hasRole || auth?.user?.email === '12345@1.test';
-
-  // Helper seguro para rutas con fallback estático
-  const getRoute = (routeName: string, fallbackUrl: string) => {
-    try {
-      if (typeof window !== 'undefined' && (window as any).route) {
-        return (window as any).route(routeName);
-      }
-    } catch (e) {}
-    return fallbackUrl;
-  };
-
-  // Función para procesar la devolución de un préstamo
   const handleDevolver = (prestamoId: number) => {
-    if (confirm('¿Estás seguro de registrar la devolución de este ejemplar? El sistema evaluará multas automáticamente si hay retraso.')) {
-      router.post(getRoute('prestamos.devolver', `/prestamos/${prestamoId}/devolver`), {}, {
+    if (confirm('¿Confirmas la recepción y devolución de este ejemplar al inventario?')) {
+      router.post(`/prestamos/${prestamoId}/devolver`, {}, {
         preserveScroll: true,
       });
     }
   };
 
-  // Función para renovar un préstamo
   const handleRenovar = (prestamoId: number) => {
-    router.post(getRoute('prestamos.renovar', `/prestamos/${prestamoId}/renovar`), {}, {
-      preserveScroll: true,
-    });
+    if (confirm('¿Deseas extender el plazo de este préstamo?')) {
+      router.post(`/prestamos/${prestamoId}/renovar`, {}, {
+        preserveScroll: true,
+      });
+    }
   };
 
   return (
@@ -44,37 +28,26 @@ export default function PrestamosIndex() {
 
       <main className="flex-1 p-8">
         <div className="max-w-7xl mx-auto">
-          {/* Alertas de error o éxito globales */}
-          {errors && Object.keys(errors).length > 0 && (
-            <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-xl text-sm">
-              <p className="font-bold">Se encontraron restricciones:</p>
-              <ul className="list-disc pl-5 mt-1">
-                {Object.values(errors).map((err: any, index) => (
-                  <li key={index}>{err}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Encabezado */}
+          
+          {/* Encabezado y Botón de Nuevo Préstamo */}
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-2xl font-bold text-slate-800">
-                {esAdminBibliotecario ? 'Gestión General de Préstamos' : 'Mis Préstamos'}
+                {esAdmin ? 'Gestión General de Préstamos' : 'Mis Préstamos'}
               </h1>
-              <p className="text-sm text-slate-600">Control de entregas, devoluciones y plazos vigentes.</p>
+              <p className="text-sm text-slate-600">Control de entregas, devoluciones y plazos vigentes de libros físicos.</p>
             </div>
-            <div className="flex gap-3">
-              {esAdminBibliotecario && (
+            <div className="flex gap-3 items-center">
+              {esAdmin && (
                 <Link
-                  href={getRoute('prestamos.create', '/prestamos/create')}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                  href="/prestamos/create"
+                  className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm flex items-center gap-2"
                 >
-                  + Nuevo Préstamo
+                  <i className="fa-solid fa-plus"></i> Nuevo Préstamo
                 </Link>
               )}
               <Link
-                href={getRoute('dashboard', '/dashboard')}
+                href="/dashboard"
                 className="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-700 transition-colors"
               >
                 Volver al Dashboard
@@ -88,8 +61,8 @@ export default function PrestamosIndex() {
               <thead>
                 <tr className="bg-[#0f2b48] text-white text-sm">
                   <th className="p-4">ID</th>
+                  {esAdmin && <th className="p-4">Usuario / Lector</th>}
                   <th className="p-4">Recurso / Ejemplar</th>
-                  <th className="p-4">Usuario</th>
                   <th className="p-4">F. Préstamo</th>
                   <th className="p-4">F. Esperada Devolución</th>
                   <th className="p-4">Estado</th>
@@ -97,55 +70,71 @@ export default function PrestamosIndex() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 text-sm">
-                {prestamos?.data && prestamos.data.length > 0 ? (
-                  prestamos.data.map((prestamo: any) => (
-                    <tr key={prestamo.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="p-4 font-semibold text-slate-700">#{prestamo.id}</td>
-                      <td className="p-4 text-slate-800">
-                        <div className="font-medium">{prestamo.ejemplar?.recurso?.titulo || 'Recurso genérico'}</div>
-                        <div className="text-xs text-slate-500">Cód. Barras: {prestamo.ejemplar?.codigo_barras || 'N/A'}</div>
+                {listaPrestamos.length > 0 ? (
+                  listaPrestamos.map((p: any) => (
+                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="p-4 font-semibold text-slate-700">#{p.id}</td>
+                      
+                      {esAdmin && (
+                        <td className="p-4 text-slate-800 font-medium">
+                          {p.usuario?.name || 'N/A'}
+                          <span className="block text-xs font-mono text-slate-500">{p.usuario?.email}</span>
+                        </td>
+                      )}
+
+                      <td className="p-4 text-slate-800 font-medium">
+                        {p.ejemplar?.recurso?.titulo || 'Libro físico'}
+                        <span className="block text-xs font-mono text-blue-600">Cód: {p.ejemplar?.codigo_barras || 'S/N'}</span>
                       </td>
-                      <td className="p-4 text-slate-600">{prestamo.usuario?.name || 'Usuario desconocido'}</td>
-                      <td className="p-4 text-slate-600">{prestamo.fecha_prestamo?.substring(0, 10)}</td>
-                      <td className="p-4 text-slate-600 font-medium">{prestamo.fecha_devolucion_esperada?.substring(0, 10)}</td>
+                      <td className="p-4 text-slate-600">{p.fecha_prestamo?.substring(0, 10)}</td>
+                      <td className="p-4 text-slate-600 font-medium">{p.fecha_devolucion_esperada?.substring(0, 10)}</td>
                       <td className="p-4">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                          prestamo.estado === 'activo' 
+                          p.estado === 'activo' 
                             ? 'bg-blue-100 text-blue-800' 
-                            : prestamo.estado === 'atrasado'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-emerald-100 text-emerald-800'
+                            : p.estado === 'devuelto'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-red-100 text-red-800'
                         }`}>
-                          {prestamo.estado}
+                          {p.estado}
                         </span>
                       </td>
                       <td className="p-4 text-center">
-                        {prestamo.estado === 'activo' && esAdminBibliotecario && (
-                          <div className="flex justify-center gap-2">
-                            <button
-                              onClick={() => handleDevolver(prestamo.id)}
-                              className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors shadow-sm"
-                            >
-                              Devolver
-                            </button>
-                            <button
-                              onClick={() => handleRenovar(prestamo.id)}
-                              className="bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-amber-700 transition-colors shadow-sm"
-                            >
-                              Renovar
-                            </button>
-                          </div>
-                        )}
-                        {prestamo.estado === 'devuelto' && (
-                          <span className="text-xs text-slate-400 font-medium">Finalizado</span>
-                        )}
+                        <div className="flex items-center justify-center gap-2">
+                          {p.estado === 'activo' && esAdmin && (
+                            <>
+                              <button
+                                onClick={() => handleDevolver(p.id)}
+                                className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+                              >
+                                Registrar Devolución
+                              </button>
+                              <button
+                                onClick={() => handleRenovar(p.id)}
+                                className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                              >
+                                Renovar
+                              </button>
+                            </>
+                          )}
+                          {p.estado === 'activo' && !esAdmin && (
+                            <span className="text-xs text-slate-400 italic">En plazo vigente</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-slate-500">
-                      No hay registros de préstamos disponibles.
+                    <td colSpan={esAdmin ? 7 : 6} className="p-12 text-center text-slate-500">
+                      <div className="max-w-sm mx-auto space-y-3">
+                        <p className="text-base font-semibold text-slate-700">No hay préstamos registrados</p>
+                        <p className="text-xs text-slate-500">
+                          {esAdmin 
+                            ? 'No existen registros activos de préstamos físicos en el sistema.' 
+                            : 'Actualmente no cuentas con préstamos vigentes de libros físicos.'}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -154,6 +143,7 @@ export default function PrestamosIndex() {
           </div>
         </div>
       </main>
+      <VirtualAssistantWidget hideForAdmin={esAdmin} />
     </div>
   );
 }

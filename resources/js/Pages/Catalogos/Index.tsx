@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Head, Link, usePage } from '@inertiajs/react';
+import VirtualAssistantWidget from '../../Components/VirtualAssistantWidget';
 
 interface Recurso {
     id: number;
@@ -188,6 +189,7 @@ export default function CatalogosIndex({ recursos }: Props) {
                     )}
                 </div>
             </div>
+        <VirtualAssistantWidget hideForAdmin={esAdmin} />    
         </div>
     );
 }

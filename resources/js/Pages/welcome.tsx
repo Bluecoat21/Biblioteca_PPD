@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Head, useForm } from '@inertiajs/react';
-import VirtualAssistantWidget from '../Components/VirtualAssistantWidget'; // <--- Importas tu widget
+import { Head, useForm, Link } from '@inertiajs/react';
+import VirtualAssistantWidget from '../Components/VirtualAssistantWidget'; 
 
 export default function Welcome() {
   const [totalBooks, setTotalBooks] = useState<number>(0);
@@ -95,6 +95,7 @@ export default function Welcome() {
                 required
                 className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500"
               />
+              {errors.email && <span className="text-xs text-red-400 mt-1 block">{errors.email}</span>}
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">Contraseña</label>
@@ -106,7 +107,19 @@ export default function Welcome() {
                 required
                 className="w-full bg-slate-900 border border-slate-800 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500"
               />
+              {errors.password && <span className="text-xs text-red-400 mt-1 block">{errors.password}</span>}
             </div>
+
+            {/* BOTONES ADICIONALES: OLVIDASTE CONTRASEÑA Y REGISTRO */}
+            <div className="flex justify-between items-center text-xs pt-1">
+              <Link href="/forgot-password" className="text-blue-400 hover:underline">
+                ¿Olvidaste tu contraseña?
+              </Link>
+              <Link href="/register" className="text-slate-400 hover:text-white transition-colors">
+                Crear cuenta web
+              </Link>
+            </div>
+
             <button
               type="submit"
               disabled={processing}
@@ -118,7 +131,6 @@ export default function Welcome() {
         </div>
       </div>
 
-      {/* WIDGET FLOTANTE EXTERNO CONECTADO A n8n */}
       <VirtualAssistantWidget />
 
     </div>
